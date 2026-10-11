@@ -80,12 +80,53 @@ namespace LifeOfEmpires.UI
             if (this.database == null) return;
 
             if (menu == null) menu = gameObject.AddComponent<MenuCanvas>();
-            menu.Build("Campaign", "Choose a mission.");
+            menu.Build("Life of Empires", "Campaign — choose a mission.");
 
             BuildMap();
             BuildControls();
             Refresh();
+            BuildTitleGate();
             SceneTransition.FadeInOnLoad();
+        }
+
+        /// <summary>Once per launch: a full-screen gate so the app opens on a title, not a list. Public so tests can reset it.</summary>
+        public static bool s_titleShown;
+        private GameObject _titleGate;
+
+        private void BuildTitleGate()
+        {
+            if (s_titleShown || transform == null) return;
+
+            RectTransform gate = UiFactory.Rect("TitleGate", transform);
+            UiFactory.Stretch(gate);
+            _titleGate = gate.gameObject;
+
+            // The dim backdrop must also eat taps so the map behind stays inert until Begin.
+            Image dim = UiFactory.Panel("Dim", gate, new Color(0f, 0f, 0f, 0.66f));
+            dim.raycastTarget = true;
+            UiFactory.Stretch(dim.rectTransform);
+
+            Image crown = UiFactory.Icon("Crown", gate, "icon_crown");
+            UiFactory.Place(crown.rectTransform,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, 300f), new Vector2(190f, 190f));
+
+            Text title = UiFactory.Label("GateTitle", gate, "Life of Empires", 72, TextAnchor.MiddleCenter, UiFactory.AccentColor);
+            title.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+            UiFactory.Place(title.rectTransform,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, 120f), new Vector2(920f, 110f));
+
+            Text tagline = UiFactory.Label("GateTagline", gate, "Forge your kingdom.", 30, TextAnchor.MiddleCenter, UiFactory.TextColor);
+            UiFactory.Place(tagline.rectTransform,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, 40f), new Vector2(760f, 60f));
+
+            Button begin = UiFactory.Button("BeginButton", gate, "Begin Conquest", 40,
+                () => { s_titleShown = true; if (_titleGate != null) _titleGate.SetActive(false); }, "icon_scroll");
+            UiFactory.Place(begin.GetComponent<RectTransform>(),
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, -170f), new Vector2(560f, 130f));
         }
 
         /// <summary>Re-read the save and repaint every plate. Called from Start and whenever the map is shown.</summary>
@@ -168,7 +209,14 @@ namespace LifeOfEmpires.UI
         private void Start()
         {
             if (state.Rows == null || state.Rows.Count == 0) Build(database);
-            else Refresh();
+            else
+            {
+                Refresh();
+                // The gate is baked into the scene — a scene reload (back from battle) must
+                // not resurrect it once the launch's title has already been dismissed.
+                Transform gate = transform.Find("TitleGate");
+                if (gate != null && s_titleShown) gate.gameObject.SetActive(false);
+            }
         }
 
         private void OnEnable()
@@ -284,10 +332,11 @@ namespace LifeOfEmpires.UI
 
             // The ribbon: a wooden route line running between the band's first and last plates,
             // with a stub reaching out to each plate so the map reads as a path, not a list.
+            // It starts at the first plate's centre — entering the header zone crossed the banner.
             if (bandNodes.Count > 0)
             {
                 Image ribbon = UiFactory.Panel($"Ribbon_{territory}", mapContent, RibbonTint);
-                float ribbonTop = (minY - CampaignMapLayout.HeaderGap * 0.45f) * mapWidth;
+                float ribbonTop = minY * mapWidth + PlateCentre;
                 float ribbonBottom = maxY * mapWidth + PlateCentre;
                 UiFactory.Place(ribbon.rectTransform,
                     new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
@@ -319,16 +368,22 @@ namespace LifeOfEmpires.UI
         {
             // The node GameObject carries the real Button — row lookups and interactable counts
             // bind to it directly. Its top edge sits on the anchor point and hangs below it.
-            var button = UiFactory.Button($"MissionRow_{node.Mission.missionId}", mapContent, string.Empty, 26, null);
-            RectTransform rowRect = button.GetComponent<RectTransform>();
+            RectTransform rowRect = UiFactory.Rect($"MissionRow_{node.Mission.missionId}", mapContent);
             // x rides an anchor fraction of the map width — a pixel x would bake in whatever width
             // the canvas happened to measure at author time and clip off-screen at runtime.
             UiFactory.Place(rowRect,
                 new Vector2(node.Anchor.x, 1f), new Vector2(node.Anchor.x, 1f), new Vector2(0.5f, 1f),
                 new Vector2(0f, point.y), new Vector2(NodeSize, NodeSize + NodeTail));
-            // The plaque face doesn't fit a square plate — the parchment disc is the visual.
-            Image buttonFace = button.targetGraphic as Image;
-            if (buttonFace != null) buttonFace.enabled = false;
+
+            var button = rowRect.gameObject.AddComponent<Button>();
+            // The Button's own GameObject must own NO Graphic: Selectable.Awake() silently
+            // assigns m_TargetGraphic = GetComponent<Graphic>() whenever the field is null, so a
+            // same-object face resurrects at runtime as a tintable plaque behind every node
+            // (that was the blue rect). A transparent child catches taps instead — uGUI events
+            // bubble up to the Button, and SetInteractable's tint branch stays dead forever.
+            Image hitCatcher = UiFactory.Panel("HitCatcher", rowRect, new Color(0f, 0f, 0f, 0f));
+            hitCatcher.raycastTarget = true;
+            UiFactory.Stretch(hitCatcher.rectTransform);
 
             int index = state.Rows.Count;
             button.onClick.AddListener(() => SelectRow(index));

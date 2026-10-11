@@ -34,6 +34,7 @@ namespace LifeOfEmpires.Tests.EditMode
             SaveSystem.OverridePath = _tempPath;
 
             CampaignManager.ClearPendingMission();
+            CampaignMapScreen.s_titleShown = false;
         }
 
         [TearDown]
@@ -186,6 +187,29 @@ namespace LifeOfEmpires.Tests.EditMode
                 Assert.AreEqual(nodes[i].Anchor.x, rowRect.anchorMax.x, 0.001f,
                     $"row {i} must anchor its x at the layout fraction");
             }
+        }
+
+        [Test]
+        public void CampaignMap_TitleGateShowsOncePerLaunch()
+        {
+            CampaignMapScreen screen = CreateScreen<CampaignMapScreen>();
+            screen.Build(TestWorld.Database);
+
+            Transform gate = FindByName(screen.transform, "TitleGate");
+            Assert.IsNotNull(gate, "the first build of a launch must present the title gate");
+
+            var begin = gate.Find("BeginButton")?.GetComponent<Button>();
+            Assert.IsNotNull(begin, "the gate must carry a Begin button");
+            Assert.IsTrue(begin.interactable, "the Begin button must be clickable");
+            begin.onClick.Invoke();
+
+            Assert.IsFalse(gate.gameObject.activeSelf, "Begin must dismiss the gate");
+            Assert.IsTrue(CampaignMapScreen.s_titleShown, "Begin marks the title as shown for the rest of the launch");
+
+            screen.Build(TestWorld.Database);
+            Transform gateAgain = FindByName(screen.transform, "TitleGate");
+            Assert.IsTrue(gateAgain == null || !gateAgain.gameObject.activeSelf,
+                "the title gate must not reappear within the same launch");
         }
 
         private static Transform FindByName(Transform root, string name)
