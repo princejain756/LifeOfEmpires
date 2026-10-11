@@ -190,6 +190,55 @@ namespace LifeOfEmpires.Tests.EditMode
         }
 
         [Test]
+        public void CampaignMap_EveryRowHasAClickSurface()
+        {
+            CampaignMapScreen screen = CreateScreen<CampaignMapScreen>();
+            screen.Build(TestWorld.Database);
+
+            foreach (CampaignMapScreen.MissionRow row in screen.state.Rows)
+            {
+                Button button = row.Button;
+                Assert.IsNotNull(button);
+                RectTransform rowRect = button.GetComponent<RectTransform>();
+
+                // The Button's own GameObject must own no Graphic — Selectable.Awake() assigns
+                // any same-object Graphic as targetGraphic, resurrecting a tintable plaque.
+                Assert.IsNull(button.GetComponent<Graphic>(),
+                    $"{row.Mission.missionId}: the Button object must carry no Graphic");
+
+                bool covered = false;
+                foreach (Graphic graphic in button.GetComponentsInChildren<Graphic>())
+                {
+                    if (!graphic.raycastTarget) continue;
+                    Rect rect = graphic.rectTransform.rect;
+                    if (rect.width >= rowRect.rect.width - 0.01f && rect.height >= rowRect.rect.height - 0.01f)
+                    {
+                        covered = true;
+                        break;
+                    }
+                }
+                Assert.IsTrue(covered, $"{row.Mission.missionId}: a full-rect raycast catcher must cover the row");
+            }
+        }
+
+        [Test]
+        public void CampaignMap_PlayIsArmedOnOpenAndSelectsOnClick()
+        {
+            CampaignMapScreen screen = CreateScreen<CampaignMapScreen>();
+            screen.Build(TestWorld.Database);
+
+            Assert.AreEqual(0, screen.state.SelectedIndex,
+                "the map must arm Play with a mission on open — a dead Play reads as a dead button");
+
+            screen.state.Rows[0].Button.onClick.Invoke();
+            Assert.AreEqual(0, screen.state.SelectedIndex, "the row button must route taps to SelectRow");
+
+            screen.PlaySelected();
+            Assert.AreEqual(TestWorld.Database.missions[0].missionId, CampaignManager.PendingMissionId,
+                "Play on a freshly opened map must park the armed mission for battle");
+        }
+
+        [Test]
         public void CampaignMap_TitleGateShowsOncePerLaunch()
         {
             CampaignMapScreen screen = CreateScreen<CampaignMapScreen>();

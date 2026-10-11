@@ -85,8 +85,17 @@ namespace LifeOfEmpires.UI
             BuildMap();
             BuildControls();
             Refresh();
+            EnsureSelection();
             BuildTitleGate();
             SceneTransition.FadeInOnLoad();
+        }
+
+        /// <summary>Arm Play with the first row when nothing is selected — a dead Play reads as a dead button.</summary>
+        private void EnsureSelection()
+        {
+            if (state.Rows == null || state.Rows.Count == 0) return;
+            if (state.SelectedIndex >= 0 && state.SelectedIndex < state.Rows.Count) return;
+            SelectRow(0);
         }
 
         /// <summary>Once per launch: a full-screen gate so the app opens on a title, not a list. Public so tests can reset it.</summary>
@@ -212,6 +221,7 @@ namespace LifeOfEmpires.UI
             else
             {
                 Refresh();
+                EnsureSelection();
                 // The gate is baked into the scene — a scene reload (back from battle) must
                 // not resurrect it once the launch's title has already been dismissed.
                 Transform gate = transform.Find("TitleGate");
