@@ -9,8 +9,8 @@ Verified on this machine (macOS 24.6.0 arm64, Unity `6000.6.5f1`):
 |---|---|---|
 | Batch-mode compile | `Unity -projectPath . -batchmode -quit -nographics -logFile /tmp/r14fix_compile.log` | **exit 0**, `0` occurrences of `error CS` |
 | Bootstrap | `… -executeMethod LifeOfEmpires.Editor.ProjectBootstrap.Run -logFile /tmp/r14fix_boot.log` | **exit 0**, log contains `URP_PROBE_OK default=LifeOfEmpires_URP current=LifeOfEmpires_URP` (1 line) and `BOOTSTRAP_OK` (1 line) |
-| EditMode tests | `… -runTests -testPlatform EditMode -testResults /tmp/r14fix_edit.xml` | **exit 0**, `testcasecount="110" result="Passed"`, 110 passed / 0 failed |
-| PlayMode tests | `… -runTests -testPlatform PlayMode -testResults /tmp/r14fix_play.xml` | **exit 0**, `testcasecount="4" result="Passed"`, 4 passed / 0 failed |
+| EditMode tests | `… -runTests -testPlatform EditMode -testResults /tmp/loe_editmode3.xml` | **exit 0**, `total="122" passed="122" failed="0"`, 122 passed / 0 failed |
+| PlayMode tests | `… -runTests -testPlatform PlayMode -testResults /tmp/loe_play.xml` | **exit 0**, `testcasecount="4" result="Passed"`, 4 passed / 0 failed |
 
 Every number here was observed in those runs; nothing is estimated.
 
@@ -100,9 +100,12 @@ Every number here was observed in those runs; nothing is estimated.
   building and unit icons, scroll/star/lock, the wooden button plaque and panel faces, the campaign-map
   landscape background, a painted grass texture on the battle ground, and the app icon (stamped into
   the Xcode `AppIcon` set by `BuildIosXcodeProject`, rendered RGB without alpha). Raw generation
-  output is kept in `art_raw/`. The campaign map runs as the app's landing scene with a scrollable
-  mission list pinned above a fixed Play/nav footer; pre-territory missions group under "Homelands"
-  instead of leaking raw mission ids.
+  output is kept in `art_raw/`. The campaign map runs as the app's landing scene as an explorable scrollable map: mission plates
+  serpentine across a grass surface in conquest-ordered territory bands (Homelands first), joined by a
+  wooden route ribbon, with scroll emblems, star icons, lock overlays and per-territory progress
+  headers, all laid out by `CampaignMapLayout` and sized post-layout by `ApplyContentHeight`; a fixed
+  Play/nav footer never scrolls. Pre-territory missions group under "Homelands" instead of leaking
+  raw mission ids.
 - **Audio.** Four locally generated clips — `Music_Menu.wav` (24 s), `Music_Battle.wav` (28 s),
   `Sting_Victory.wav` (12 s), `Sting_Defeat.wav` (12 s), all 32 kHz mono 16-bit — live in
   `Assets/LifeOfEmpires/Audio/` and are duplicated into `Assets/LifeOfEmpires/Resources/` so
@@ -116,7 +119,13 @@ Every number here was observed in those runs; nothing is estimated.
   `Music_Menu` in the other four — and `AudioPlaybackWiringTests` reads that value back out of the
   scene YAML and resolves it, so a name `Resources.Load` cannot find fails the suite instead of
   shipping a silent scene (defect 12).
-- **Tests.** 110 EditMode tests (economy arithmetic, cost/definition agreement, pathfinding behaviour
+- **Scene transitions.** Every scene load routes through the single `SceneManager.LoadScene` call
+  inside `SceneTransition.Go`, which fades on **unscaled** time (a paused battle can still exit) and
+  drops re-entrant calls behind `IsTransitioning`; scene entry fades back in via `FadeInOnLoad`.
+- **Unit animation.** `UnitAnimator` animates only the `Body` child — idle bob, breathing, attack
+  lunge and a death fade hooked from `UnitController.Die` ahead of the unchanged `deathFadeSeconds`
+  scheduling — so the gameplay root, `HealthBar` and `SelectionRing` never move.
+- **Tests.** 122 EditMode tests (economy arithmetic, cost/definition agreement, pathfinding behaviour
   and budgets, selection, objectives, save system, shipped-asset integrity, audio clip resolution and
   scene wiring, campaign unlock rules, archer projectile pooling, the production refund path, HUD
   behaviour, and where a tap on the player's own building is routed) and 4 PlayMode tests: the first
@@ -130,8 +139,8 @@ Every number here was observed in those runs; nothing is estimated.
 ## 2. Partially completed
 
 - **Menu art is a first pass.** The generated icon set, wood-plaque buttons and landscape background
-  read as a cohesive skin in the simulator, but there are no transitions, parallax, or a dedicated
-  map-view screen — the campaign map is a scrolling list, not an explorable map image.
+  read as a cohesive skin in the simulator, and the campaign map is now an explorable surface with
+  fade transitions between scenes — still no parallax layers or animated map markers.
 - **Building selection is HUD-local.** Tapping a player building opens its production panel; the
   selection manager itself still only knows about units, and the panel lives on the HUD. One tap means
   one thing: `BattleInputController` resolves a tap that lands on one of the player's own buildings
@@ -157,7 +166,7 @@ Every number here was observed in those runs; nothing is estimated.
 
 ## 3. Known bugs
 
-No known defect is open in the delivered systems: the 110 EditMode and 4 PlayMode tests pass, the
+No known defect is open in the delivered systems: the 122 EditMode and 4 PlayMode tests pass, the
 batch-mode compile is clean, and the bootstrap completes. Items in §2 are missing features, not
 malfunctions. Two design limits are worth calling out explicitly:
 
