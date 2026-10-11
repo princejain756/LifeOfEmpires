@@ -144,6 +144,15 @@ namespace LifeOfEmpires
                 cameraRig.SetBattlefieldBounds(new Bounds(
                     transform.position + new Vector3(gridWidth * cellSize * 0.5f, 0f, gridHeight * cellSize * 0.5f),
                     new Vector3(gridWidth * cellSize, 0f, gridHeight * cellSize)));
+
+                // An RTS opens on the player's base, not the map's geometric centre — otherwise
+                // the base sits clipped at the screen edge on first load.
+                BuildingController home = Context != null ? Context.TownHallOf(Team.Player) : null;
+                if (home != null)
+                {
+                    cameraRig.transform.position = new Vector3(
+                        home.transform.position.x, cameraRig.transform.position.y, home.transform.position.z);
+                }
             }
 
             ArmMissionSpawns(mission);
@@ -272,15 +281,27 @@ namespace LifeOfEmpires
 
             var go = new GameObject($"Unit_{definition.id}");
 
-            var body = GameObject.CreatePrimitive(definition.IsCombatUnit ? PrimitiveType.Capsule : PrimitiveType.Cylinder);
-            body.name = "Body";
-            body.transform.SetParent(go.transform, false);
-            body.transform.localScale = definition.IsCombatUnit
-                ? new Vector3(0.7f, 0.75f, 0.7f)
-                : new Vector3(0.65f, 0.5f, 0.65f);
-            body.transform.localPosition = new Vector3(0f, definition.IsCombatUnit ? 0.75f : 0.5f, 0f);
+            GameObject body = ModelLibrary.Spawn(ModelLibrary.UnitModel(definition.id), go.transform);
+            if (body != null)
+            {
+                var capsule = body.AddComponent<CapsuleCollider>();
+                capsule.center = new Vector3(0f, 0.9f, 0f);
+                capsule.radius = 0.45f;
+                capsule.height = 1.8f;
+                if (team == Team.Enemy) ModelLibrary.TintMaterials(body, "Cloth", new Color(0.55f, 0.16f, 0.12f));
+            }
+            else
+            {
+                body = GameObject.CreatePrimitive(definition.IsCombatUnit ? PrimitiveType.Capsule : PrimitiveType.Cylinder);
+                body.name = "Body";
+                body.transform.SetParent(go.transform, false);
+                body.transform.localScale = definition.IsCombatUnit
+                    ? new Vector3(0.7f, 0.75f, 0.7f)
+                    : new Vector3(0.65f, 0.5f, 0.65f);
+                body.transform.localPosition = new Vector3(0f, definition.IsCombatUnit ? 0.75f : 0.5f, 0f);
 
-            ApplyColor(body.GetComponent<Renderer>(), definition.color);
+                ApplyColor(body.GetComponent<Renderer>(), definition.color);
+            }
 
             go.transform.position = spawnPoint;
 
@@ -317,11 +338,22 @@ namespace LifeOfEmpires
 
             var go = new GameObject($"Building_{definition.id}");
 
-            var body = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            body.name = "Body";
-            body.transform.SetParent(go.transform, false);
-            body.transform.localScale = new Vector3(footprint.x * cellSize * 0.95f, 2.4f, footprint.y * cellSize * 0.95f);
-            body.transform.localPosition = new Vector3(0f, 1.2f, 0f);
+            GameObject body = ModelLibrary.Spawn(ModelLibrary.BuildingModel(definition.id), go.transform);
+            if (body != null)
+            {
+                var box = body.AddComponent<BoxCollider>();
+                box.size = new Vector3(footprint.x * cellSize * 0.95f, 7f, footprint.y * cellSize * 0.95f);
+                box.center = new Vector3(0f, 3.5f, 0f);
+                if (team == Team.Enemy) ModelLibrary.TintMaterials(body, "Plaster", EnemyTint);
+            }
+            else
+            {
+                body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                body.name = "Body";
+                body.transform.SetParent(go.transform, false);
+                body.transform.localScale = new Vector3(footprint.x * cellSize * 0.95f, 2.4f, footprint.y * cellSize * 0.95f);
+                body.transform.localPosition = new Vector3(0f, 1.2f, 0f);
+            }
 
             go.transform.position = new Vector3(position.x, transform.position.y, position.z);
 
@@ -382,6 +414,8 @@ namespace LifeOfEmpires
             snapped = pathfinding.CentreOf(cell);
             return true;
         }
+
+        private static readonly Color EnemyTint = new Color(0.58f, 0.30f, 0.24f);
 
         private static void ApplyColor(Renderer renderer, Color color)
         {

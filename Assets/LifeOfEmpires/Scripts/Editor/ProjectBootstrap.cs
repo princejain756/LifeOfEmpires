@@ -118,6 +118,10 @@ namespace LifeOfEmpires.Editor
             "Standard"
         };
 
+        // FBX-embedded materials import on whatever shader the importer picks. Instances get
+        // re-slotted onto shared URP Lit materials at spawn time inside ModelLibrary, so the
+        // palette lives there (runtime-safe) rather than in this editor-only pass.
+
         // -----------------------------------------------------------------------------------------
         // Render pipeline
         // -----------------------------------------------------------------------------------------
@@ -1032,7 +1036,7 @@ namespace LifeOfEmpires.Editor
             cameraGo.transform.SetParent(rigGo.transform, false);
             Camera camera = cameraGo.AddComponent<Camera>();
             camera.orthographic = true;
-            camera.backgroundColor = new Color(0.44f, 0.55f, 0.65f);
+            camera.backgroundColor = new Color(0.16f, 0.24f, 0.15f);
             camera.clearFlags = CameraClearFlags.SolidColor;
             rig.ApplyConfiguration();
 
@@ -1299,14 +1303,26 @@ namespace LifeOfEmpires.Editor
             var go = new GameObject(name);
             go.transform.position = position;
 
-            var body = GameObject.CreatePrimitive(definition.IsCombatUnit ? PrimitiveType.Capsule : PrimitiveType.Cylinder);
-            body.name = "Body";
-            body.transform.SetParent(go.transform, false);
-            body.transform.localScale = definition.IsCombatUnit ? new Vector3(0.7f, 0.75f, 0.7f) : new Vector3(0.65f, 0.5f, 0.65f);
-            body.transform.localPosition = new Vector3(0f, definition.IsCombatUnit ? 0.75f : 0.5f, 0f);
+            GameObject body = ModelLibrary.Spawn(ModelLibrary.UnitModel(definition.id), go.transform);
+            if (body != null)
+            {
+                var capsule = body.AddComponent<CapsuleCollider>();
+                capsule.center = new Vector3(0f, 0.9f, 0f);
+                capsule.radius = 0.45f;
+                capsule.height = 1.8f;
+                if (team == Team.Enemy) ModelLibrary.TintMaterials(body, "Cloth", new Color(0.55f, 0.16f, 0.12f));
+            }
+            else
+            {
+                body = GameObject.CreatePrimitive(definition.IsCombatUnit ? PrimitiveType.Capsule : PrimitiveType.Cylinder);
+                body.name = "Body";
+                body.transform.SetParent(go.transform, false);
+                body.transform.localScale = definition.IsCombatUnit ? new Vector3(0.7f, 0.75f, 0.7f) : new Vector3(0.65f, 0.5f, 0.65f);
+                body.transform.localPosition = new Vector3(0f, definition.IsCombatUnit ? 0.75f : 0.5f, 0f);
 
-            var renderer = body.GetComponent<MeshRenderer>();
-            if (renderer != null && material != null) renderer.sharedMaterial = material;
+                var renderer = body.GetComponent<MeshRenderer>();
+                if (renderer != null && material != null) renderer.sharedMaterial = material;
+            }
 
             UnitController unit = go.AddComponent<UnitController>();
             unit.team = team;
@@ -1316,13 +1332,17 @@ namespace LifeOfEmpires.Editor
         /// <summary>A tree is a harvestable trunk plus a non-harvestable canopy child.</summary>
         private static void CreateTree(string name, Vector3 basePosition, Material bark, Material leaf, int capacity)
         {
-            GameObject trunk = CreatePrimitive(name, PrimitiveType.Cylinder, basePosition + new Vector3(0f, 0.9f, 0f), new Vector3(0.7f, 0.9f, 0.7f), bark);
+            GameObject go = ModelLibrary.SpawnAt("Tree", basePosition);
+            if (go == null)
+            {
+                go = CreatePrimitive(name, PrimitiveType.Cylinder, basePosition + new Vector3(0f, 0.9f, 0f), new Vector3(0.7f, 0.9f, 0.7f), bark);
+                GameObject canopy = CreatePrimitive($"{name}_Canopy", PrimitiveType.Sphere, basePosition + new Vector3(0f, 2.1f, 0f), new Vector3(2.4f, 1.6f, 2.4f), leaf);
+                canopy.transform.SetParent(go.transform, true);
+            }
+            go.name = name;
 
-            ResourceNode node = trunk.AddComponent<ResourceNode>();
+            ResourceNode node = go.AddComponent<ResourceNode>();
             node.Configure(ResourceType.Wood, capacity);
-
-            GameObject canopy = CreatePrimitive($"{name}_Canopy", PrimitiveType.Sphere, basePosition + new Vector3(0f, 2.1f, 0f), new Vector3(2.4f, 1.6f, 2.4f), leaf);
-            canopy.transform.SetParent(trunk.transform, true);
         }
 
         /// <summary>One material asset per unit definition, coloured from the definition itself.</summary>
@@ -1339,14 +1359,25 @@ namespace LifeOfEmpires.Editor
             var go = new GameObject(name);
             go.transform.position = position;
 
-            var body = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            body.name = "Body";
-            body.transform.SetParent(go.transform, false);
-            body.transform.localScale = new Vector3(definition.footprint.x * 0.95f, height, definition.footprint.y * 0.95f);
-            body.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
+            GameObject body = ModelLibrary.Spawn(ModelLibrary.BuildingModel(definition.id), go.transform);
+            if (body != null)
+            {
+                var box = body.AddComponent<BoxCollider>();
+                box.size = new Vector3(definition.footprint.x * 0.95f, 7f, definition.footprint.y * 0.95f);
+                box.center = new Vector3(0f, 3.5f, 0f);
+                if (team == Team.Enemy) ModelLibrary.TintMaterials(body, "Plaster", EnemyBuildingColor);
+            }
+            else
+            {
+                body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                body.name = "Body";
+                body.transform.SetParent(go.transform, false);
+                body.transform.localScale = new Vector3(definition.footprint.x * 0.95f, height, definition.footprint.y * 0.95f);
+                body.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
 
-            var renderer = body.GetComponent<MeshRenderer>();
-            if (renderer != null && material != null) renderer.sharedMaterial = material;
+                var renderer = body.GetComponent<MeshRenderer>();
+                if (renderer != null && material != null) renderer.sharedMaterial = material;
+            }
 
             BuildingController building = go.AddComponent<BuildingController>();
             building.team = team;
@@ -1364,7 +1395,9 @@ namespace LifeOfEmpires.Editor
             ResourceType resource,
             int capacity)
         {
-            GameObject go = CreatePrimitive(name, type, position, scale, material);
+            GameObject go = ModelLibrary.SpawnAt(ModelLibrary.ResourceModel(resource), new Vector3(position.x, 0f, position.z));
+            if (go == null) go = CreatePrimitive(name, type, position, scale, material);
+            go.name = name;
 
             ResourceNode node = go.AddComponent<ResourceNode>();
             node.Configure(resource, capacity);

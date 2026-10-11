@@ -131,9 +131,14 @@ Every number here was observed in those runs; nothing is estimated.
   (`TapRoutingTests`).
 - **`terrainSeed` seeds determinism, not terrain.** It is passed to the enemy AI's random source.
   The battlefield is a flat plane; procedural terrain generation belongs to a later milestone.
-- **Art is primitives.** Units/buildings are Unity primitives with generated URP/Lit materials; the
-  HUD is flat colour blocks and the one builtin font (`LegacyRuntime.ttf`). `Prefabs/` is reserved and
-  empty.
+- **Battle art is low-poly FBX models.** `Resources/Models/` ships ten original Blender-authored
+  meshes (villager, swordsman, spearman, archer, town hall, barracks, watchtower, farm, tree, gold
+  rock). `ModelLibrary` resolves gameplay ids to models, instantiates them under the gameplay root,
+  and remaps every renderer to generated URP/Lit palette materials at spawn time — the gameplay
+  components (`UnitController`, `BuildingController`, `ResourceNode`, colliders) are unchanged.
+  `BattleManager.StartBattle` focuses the camera rig on the player town hall at battle start.
+  The HUD is still flat colour blocks and the one builtin font (`LegacyRuntime.ttf`); `Prefabs/`
+  is reserved and empty.
 - **Audio covers music only.** Menu theme, battle loop and the victory/defeat stings ship (§1);
   gathering, building, combat and generic UI cues do not — spec §18 lists them as its own category, and
   reusing a sting for a wood deposit would be worse than silence. Music/effects volume and mute are set
@@ -204,6 +209,16 @@ Recorded because each was a real, observable failure, not a refactor:
    `BuildBattleScene` call site (the strings, not the file names), the bootstrap re-run to re-author
    all five scenes, and `AudioPlaybackWiringTests` now fails on the old value — verified by
    reintroducing `music: battle` into `Battle.unity` and watching it fail before restoring.
+13. **IL2CPP stripped every concrete collider type.** No script statically references
+    `MeshCollider`/`BoxCollider`/`CapsuleCollider` — every collider reached scenes only through
+    `GameObject.CreatePrimitive` internals — so the linker removed them all. In the simulator the
+    console spammed `Can't add component because class 'MeshCollider' doesn't exist` and every
+    raycast-selectable object lost its collider. `Assets/LifeOfEmpires/link.xml` now preserves the
+    physics collider types; the simulator console is clean.
+14. **Runtime `Shader.Find` found nothing in a player build.** Materials created at runtime asked
+    for URP `Lit`/`Unlit`/`Standard` shaders that nothing in the shipped scenes referenced, so they
+    were stripped and affected objects rendered magenta. `ProjectBootstrap` now authors five
+    `ShaderKeep_*` materials into `Resources/` so the shaders always ship.
 
 ## 4. Unverified functionality
 
@@ -220,11 +235,11 @@ Nothing below has been observed to work, and none of it is claimed:
 - **Touch feel on hardware.** Tap forgiveness, pinch-vs-pan disambiguation, and one-handed reach have
   only been reasoned about and unit-tested in screen space (72 px radius, 22 px drag threshold,
   90 px double-tap drift) — never felt on a device.
-- **The HUD on a device.** The HUD has **never been seen on a device**. Batchmode proves its wiring
-  and behaviour — labels follow the stockpile, buttons reach the right systems — and the layout is
-  anchored against `Screen.safeArea`, but safe-area handling under a real notch/Dynamic Island, text
-  legibility, button hit-size and touch feel have not been observed. Batchmode has no display at all,
-  so `SafeAreaFitter` is a no-op there.
+- **The HUD on a device.** Verified rendered in the iPhone 16 Pro simulator (iOS 26.3): resource
+  bar, objective hint, selection panel, build menu, Pause all draw correctly, models render,
+  workers gather live. Not yet observed on physical hardware — safe-area handling under a real
+  notch/Dynamic Island, text legibility, button hit-size and touch feel have not been felt on a
+  device. Batchmode has no display at all, so `SafeAreaFitter` is a no-op there.
 - **Advertising and in-app purchase.** No SDK is integrated and no store interaction has occurred
   (`MONETIZATION_SETUP.md`).
 - **Campaign progression beyond one hop.** The unlock rule and Next Mission button are unit-tested,
