@@ -1,4 +1,4 @@
-# Monetization Setup — Empire Rush
+# Monetization Setup — Life of Empires
 
 **Scope of this document: architecture and configuration only.** No advertising or in-app-purchase
 SDK is present in this build. `Packages/manifest.json` contains no `com.unity.purchasing` and no
@@ -14,7 +14,7 @@ required to switch it on.
 | Per-mission rewards | `MissionDefinition.crownReward`, `StarObjective.crownValue` (`Data/Mission_*.asset`) | 2 crowns (`mission_01`), 3 (`mission_02`); 1 crown per earned star |
 | Entitlements | `SaveData.entitlements` + `GrantEntitlement(id)` / `HasEntitlement(id)` | idempotent grant; a repeated grant returns `false` and stores once |
 | Purchased products | `SaveData.purchasedProducts` | raw store product ids, so entitlements can be re-derived after a restore |
-| Persistence | `SaveSystem.Serialize` / `TryDeserialize` / `WriteToDisk` / `ReadFromDisk` | JSON at `Application.persistentDataPath/empirerush_save.json`; corrupt payloads degrade to defaults instead of throwing |
+| Persistence | `SaveSystem.Serialize` / `TryDeserialize` / `WriteToDisk` / `ReadFromDisk` | JSON at `Application.persistentDataPath/life_of_empires_save.json`; corrupt payloads degrade to defaults instead of throwing |
 
 Nothing in the runtime currently reads `entitlements` to gate content — there is no premium content
 to gate yet. The data model is the seam the store integration plugs into.
@@ -82,9 +82,9 @@ Connect**; they are proposed, not yet registered.
 
 | Product | Proposed identifier | Type | Grants |
 |---|---|---|---|
-| Premium Campaign Expansion | `com.empirerush.campaign.expansion1` | Non-consumable | Entitlement `campaign_expansion1` → unlocks the premium campaign's missions |
-| Royal Castle Cosmetic Pack | `com.empirerush.cosmetic.royalcastle` | Non-consumable | Entitlement `cosmetic_royalcastle` → cosmetic castle appearance |
-| Founder's Edition | `com.empirerush.founder` | Non-consumable | Entitlement `founder` → defined premium cosmetics + a specified premium campaign |
+| Premium Campaign Expansion | `com.princejain756.lifeofempires.campaign.expansion1` | Non-consumable | Entitlement `campaign_expansion1` → unlocks the premium campaign's missions |
+| Royal Castle Cosmetic Pack | `com.princejain756.lifeofempires.cosmetic.royalcastle` | Non-consumable | Entitlement `cosmetic_royalcastle` → cosmetic castle appearance |
+| Founder's Edition | `com.princejain756.lifeofempires.founder` | Non-consumable | Entitlement `founder` → defined premium cosmetics + a specified premium campaign |
 
 Consumers must be bundled normally through the App Store; no external payment system.
 
@@ -100,13 +100,13 @@ Entitlement rules to implement on top of the existing save model:
 - Do not present purchase prompts during the first tutorial mission.
 
 Note: the save-system test fixture references an example product id
-`com.empirerush.kingdom.full_campaign` purely as a string round-trip value. It is not a registered
+`com.princejain756.lifeofempires.full_campaign` purely as a string round-trip value. It is not a registered
 product; align product ids and entitlements to the table above (or to whatever is actually created in
 App Store Connect) before shipping.
 
 ## 4. Publishing and account configuration workflow
 
-1. **AdMob account** → register the app (iOS bundle id `com.empirerush.kingdom`) → create one
+1. **AdMob account** → register the app (iOS bundle id `com.princejain756.lifeofempires`) → create one
    rewarded ad unit → keep the App ID and unit id out of source; feed them through the
    `AdvertisingService` configuration fields.
 2. **app-ads.txt** — host Google's required line on the developer website referenced by the App

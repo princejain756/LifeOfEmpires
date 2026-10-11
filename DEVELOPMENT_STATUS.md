@@ -1,33 +1,35 @@
-# Development Status — Empire Rush
+# Development Status — Life of Empires
 
-Snapshot of Milestones 1–2 (playable RTS battle) as delivered in this working tree.
+Snapshot of Milestones 1–3 (playable RTS battle with an in-battle HUD) as delivered in this working
+tree.
 
 Verified on this machine (macOS 24.6.0 arm64, Unity `6000.6.5f1`):
 
 | Check | Command | Result |
 |---|---|---|
-| Batch-mode compile | `Unity -projectPath . -batchmode -quit -nographics -logFile /tmp/er_v1.log` | **exit 0**, `0` occurrences of `error CS` |
-| Bootstrap | `… -executeMethod EmpireRush.Editor.ProjectBootstrap.Run -logFile /tmp/er_v2.log` | **exit 0**, log contains `URP_PROBE_OK default=EmpireRush_URP current=EmpireRush_URP type=UniversalRenderPipelineAsset` and `BOOTSTRAP_OK` |
-| EditMode tests | `… -runTests -testPlatform EditMode -testResults /tmp/er_tests.xml` | **exit 0**, `testcasecount="52" result="Passed"`, 52 passed / 0 failed |
-| PlayMode tests | `… -runTests -testPlatform PlayMode -testResults /tmp/er_pm.xml` | **exit 0**, 1 passed / 0 failed |
+| Batch-mode compile | `Unity -projectPath . -batchmode -quit -nographics -logFile /tmp/rv1.log` | **exit 0**, `0` occurrences of `error CS` |
+| Bootstrap | `… -executeMethod LifeOfEmpires.Editor.ProjectBootstrap.Run -logFile /tmp/rv2.log` | **exit 0**, log contains `URP_PROBE_OK default=LifeOfEmpires_URP current=LifeOfEmpires_URP type=UniversalRenderPipelineAsset` (line 474) and `BOOTSTRAP_OK` (line 486) |
+| EditMode tests | `… -runTests -testPlatform EditMode -testResults /tmp/rv_edit.xml` | **exit 0**, `testcasecount="74" result="Passed"`, 74 passed / 0 failed |
+| PlayMode tests | `… -runTests -testPlatform PlayMode -testResults /tmp/rv_play.xml` | **exit 0**, `testcasecount="3" result="Passed"`, 3 passed / 0 failed |
 
 Every number here was observed in those runs; nothing is estimated.
 
 ## 1. Completed
 
 - **Project + pipeline.** Unity 6.6 project created by the editor itself (no hand-authored
-  `ProjectSettings`). URP 17.6.0 assets (`Settings/EmpireRush_URP.asset`, `EmpireRush_Renderer.asset`)
+  `ProjectSettings`). URP 17.6.0 assets (`Settings/LifeOfEmpires_URP.asset`, `LifeOfEmpires_Renderer.asset`)
   are created *and assigned* to `GraphicsSettings.defaultRenderPipeline`; a `Mobile` quality tier is
-  bound to the URP asset. iOS player settings applied: `com.empirerush.kingdom`, v0.1.0, IL2CPP,
+  bound to the URP asset. iOS player settings applied: `com.princejain756.lifeofempires`, v0.1.0, IL2CPP,
   target iOS 15.0, portrait-only, full screen, hidden status bar.
-- **Assemblies.** `EmpireRush.Runtime`, `EmpireRush.Editor`, `EmpireRush.Tests.EditMode`,
-  `EmpireRush.Tests.PlayMode`. Runtime code compiles against `UnityEngine` + `Unity.InputSystem`
-  only.
+- **Assemblies.** `LifeOfEmpires.Runtime`, `LifeOfEmpires.Editor`, `LifeOfEmpires.Tests.EditMode`,
+  `LifeOfEmpires.Tests.PlayMode`. Runtime code compiles against `UnityEngine` + `Unity.InputSystem`
+  + `UnityEngine.UI` (uGUI 2.6.0, declared in `Packages/manifest.json`; `com.unity.modules.physics2d`
+  is declared explicitly because it is uGUI's own hard dependency).
 - **Two real scenes**, both in `EditorBuildSettings`: `Bootstrap.unity` (loads `Battle`) and
   `Battle.unity` — ground plane in the spec palette `#85A66A`, isometric camera rig, player town
-  hall, 3 workers, 3 trees / 2 farms / 1 gold vein, enemy town hall + barracks + swordsman +
-  spearman, all with URP/Lit materials and wired system references (database, mission, economy,
-  selection camera, camera rig).
+  hall + **player barracks**, 3 workers, 3 trees / 2 farms / 1 gold vein, enemy town hall + barracks
+  + swordsman + spearman, all with URP/Lit materials and wired system references (database, mission,
+  economy, selection camera, camera rig), plus the **HUD canvas and one `EventSystem`**.
 - **Economy.** `ResourceManager` with a single spend path; `EconomyBalance` data asset drives
   gathering, carry capacity, deposit time, construction rate. Negative results are refused, never
   clamped silently.
@@ -62,35 +64,65 @@ Every number here was observed in those runs; nothing is estimated.
   `Time.timeScale = 0` pause. Victory persists a mission record and awards the mission's crowns.
 - **Save.** JSON round-trip of mission records, crowns, entitlements and purchased products; corrupt
   or truncated payloads fall back to defaults instead of throwing.
-- **Content.** 3 unit definitions, 3 building definitions, 2 missions, 3 difficulty profiles, 1 economy
+- **In-battle HUD (`Scripts/Runtime/UI/`).** One uGUI canvas, authored into `Battle.unity` by the
+  bootstrap and rebuilt identically at runtime if it is ever absent:
+  `UIResourcesBar` (live wood/food/gold from `ResourceManager.OnResourceChanged`, crowns read from
+  the save file because `BattleManager.HandleBattleEnded` is what writes them), `UISelectionPanel`
+  (count, unit name, aggregate health, plus Move/Attack/Stop/Army/Hall wrappers over
+  `UnitSelectionManager` and `UnitController`), `UIBuildMenu` (one priced button per non-town-hall
+  building, disabled until affordable, calling `BuildingPlacementSystem.BeginPlacement` only —
+  the input controller still owns the ghost and the confirm tap), `UIProductionPanel` (training
+  progress plus one button per combat unit, routed through `BuildingController.TryTrain` and
+  surfacing its refusal reason), `UIResultsPanel` (victory/defeat, stars, the mission's crown reward,
+  Return and Next Mission), and a Pause button. `CanvasScaler` is `ScaleWithScreenSize`, matched on
+  width, 1080×1920 portrait, with a `SafeAreaFitter` holding every control inside `Screen.safeArea`.
+  Exactly one `EventSystem` with `InputSystemUIInputModule` — no legacy module, so no double-fired
+  taps.
+- **Ranged unit.** `archer` (70 HP, 11 damage, 1.4 s interval, 9 m range, `isRanged: true`, 40/30/10,
+  14 s) exists as `Data/Unit_Archer.asset` and is trainable from the barracks through
+  `BuildingController.TryTrain`, so the pooled-projectile branch runs in gameplay rather than only
+  under direct calls.
+- **`BuildingController.TryTrain`.** Trains any unit a building may field, not only its single
+  `producesUnitId`; delegates to `EnqueueTraining` for that one and otherwise charges once through
+  `ResourceManager.TrySpend` after every precondition passes. The barracks keeps one production slot
+  and one charge path, and the AI is untouched.
+- **Campaign progression.** `CampaignManager` consumes `MissionDefinition.unlockRequirement`
+  (`IsUnlocked`, `NextPlayableMission`, `StarLabel`); the results card's Next Mission button parks the
+  chosen mission and `GameBootstrap` picks it up when it composes the next battle.
+- **Content.** 4 unit definitions, 3 building definitions, 2 missions, 3 difficulty profiles, 1 economy
   balance — all as ScriptableObjects (`GAME_BALANCE.md`).
-- **Tests.** 52 EditMode tests (economy arithmetic, cost/definition agreement, pathfinding behaviour
-  and budgets, selection, objectives, save system, shipped-asset integrity) and 1 PlayMode test that
-  builds a barracks through the real placement flow, waits for a dispatched worker to finish it,
-  trains a swordsman, and razes an enemy tower.
+- **Tests.** 74 EditMode tests (economy arithmetic, cost/definition agreement, pathfinding behaviour
+  and budgets, selection, objectives, save system, shipped-asset integrity, campaign unlock rules,
+  archer projectile pooling, the production refund path, HUD behaviour, and where a tap on the player's
+  own building is routed) and 3 PlayMode tests: the first
+  builds a barracks through the real placement flow, waits for a dispatched worker to finish it, trains
+  a swordsman and razes an enemy tower; the second trains an **archer** through the multi-unit
+  production path and confirms the ranged unit that leaves the barracks; the third places an enemy in an
+  archer's reach and lets the unit's own tick fire, proving the shot travels through the prewarmed
+  `ProjectilePool` (`ActiveCount > 0` in flight, `TotalCreated` unchanged, `RefusedCount == 0`, damage on
+  impact) rather than being applied directly.
 
 ## 2. Partially completed
 
-- **Player-driven build and train have no on-screen entry point.** `BuildingPlacementSystem.BeginPlacement`,
-  `Confirm`, and `BuildingController.EnqueueTraining` are implemented and exercised by tests, and
-  `BattleInputController` already routes taps into the ghost preview and confirm steps — but nothing
-  in the running game *starts* placement or training, because there is no HUD. Until a HUD calls
-  those methods, a player can select, order, gather and fight, but cannot add buildings or units.
-- **Selection buttons are methods, not buttons.** `SelectAllCombatUnits()`, `SelectAll()` and
-  `CenterOnTownHall()` exist on `UnitSelectionManager`; no UI canvas calls them yet.
-- **Ranged combat is implemented but authored nowhere.** The `isRanged` path, projectile pool and
-  `ResolveAttack` ranged branch exist and are pooled correctly, but no unit definition in `Data/`
-  has `isRanged: true`, so that branch never runs in gameplay (only through direct calls).
-- **`unlockRequirement` is data without a consumer.** `Mission_02` declares `unlockRequirement:
-  mission_01`; nothing enforces or displays it because there is no campaign/mission-select flow yet.
+- **The HUD has no campaign map behind it.** The results card can start the next unlocked mission
+  directly, but there is no mission-select screen: the campaign map is Milestone 4 and no scene for it
+  exists yet.
+- **Building selection is HUD-local.** Tapping a player building opens its production panel; the
+  selection manager itself still only knows about units, and the panel lives on the HUD. One tap means
+  one thing: `BattleInputController` resolves a tap that lands on one of the player's own buildings
+  through the same `BattleContext.FindPlayerBuildingNearScreenPoint` helper the HUD uses and leaves the
+  panel to claim it, so the tap is neither a move order nor an attack order. The panel therefore opens
+  and closes on building taps alone and can never be locked away by having an army selected
+  (`TapRoutingTests`).
 - **`terrainSeed` seeds determinism, not terrain.** It is passed to the enemy AI's random source.
   The battlefield is a flat plane; procedural terrain generation belongs to a later milestone.
 - **Art and audio are primitives and silence.** Units/buildings are Unity primitives with generated
-  URP/Lit materials; `Art/`, `Audio/`, `Prefabs/` and `Resources/` are reserved and empty.
+  URP/Lit materials; the HUD is flat colour blocks and the one builtin font (`LegacyRuntime.ttf`).
+  `Audio/`, `Prefabs/` and `Resources/` are reserved and empty.
 
 ## 3. Known bugs
 
-No known defect is open in the delivered systems: the 52 EditMode and 1 PlayMode tests pass, the
+No known defect is open in the delivered systems: the 74 EditMode and 3 PlayMode tests pass, the
 batch-mode compile is clean, and the bootstrap completes. Items in §2 are missing features, not
 malfunctions. Two design limits are worth calling out explicitly:
 
@@ -131,6 +163,14 @@ Recorded because each was a real, observable failure, not a refactor:
    attempt was overwritten by a later slower one. The fastest recorded run is now kept.
 8. One EditMode assertion contradicted the line below it (`SelectAll()` was expected to return 2
    while the very next assertion expected 4 selected units); corrected to 4.
+9. The PlayMode suite leaked objects between tests. `BattleManager`/`BuildingPlacementSystem` spawn
+   units and buildings themselves, so anything they created escaped the test's own tracked list — a
+   live worker from the first test was adopted by the second test's `AdoptSceneContents` and, holding
+   a reference to the destroyed navigation grid of the first test, failed the second test's build
+   order as "unreachable". `TearDown` now destroys surviving units, buildings and resource nodes.
+10. Driving a pooled projectile's private `Update` callback through `SendMessage` from an EditMode
+   test asserts `ShouldRunBehaviour()` inside the editor; the archer test now invokes the callback by
+   reflection instead, which the engine's behaviour runner does not intercept.
 
 ## 4. Unverified functionality
 
@@ -145,32 +185,33 @@ Nothing below has been observed to work, and none of it is claimed:
 - **Touch feel on hardware.** Tap forgiveness, pinch-vs-pan disambiguation, and one-handed reach have
   only been reasoned about and unit-tested in screen space (72 px radius, 22 px drag threshold,
   90 px double-tap drift) — never felt on a device.
-- **Anything requiring a screen.** No UI exists, so safe-area/notch layout, text legibility and
-  button hit-size are untested.
+- **The HUD on a device.** The HUD has **never been seen on a device**. Batchmode proves its wiring
+  and behaviour — labels follow the stockpile, buttons reach the right systems — and the layout is
+  anchored against `Screen.safeArea`, but safe-area handling under a real notch/Dynamic Island, text
+  legibility, button hit-size and touch feel have not been observed. Batchmode has no display at all,
+  so `SafeAreaFitter` is a no-op there.
 - **Advertising and in-app purchase.** No SDK is integrated and no store interaction has occurred
   (`MONETIZATION_SETUP.md`).
-- **Ranged combat in gameplay**, procedural terrain, audio, and campaign progression — not
-  implemented, therefore not verified.
+- **Campaign progression beyond one hop.** The unlock rule and Next Mission button are unit-tested,
+  and the unlock rule is exercised in PlayMode/EditMode, but no run has been watched through two
+  consecutive missions in a built player.
+- **Procedural terrain and audio** — not implemented, therefore not verified.
 
 ## 5. Next steps
 
-1. HUD/UI canvas for Milestone 3+: unit cards and training from a selected barracks, a build menu
-   calling `BeginPlacement`, selection buttons calling `SelectAllCombatUnits`/`CenterOnTownHall`,
-   and a results panel wired to the existing `OnBattleEnded`.
-2. Ranged units (author `archer` with `isRanged: true`) so the pooled projectile path runs in
-   gameplay, then re-check the pooled-projectile tests.
-3. Campaign flow: mission select, `unlockRequirement` enforcement, star/crown display, results panel.
-4. Terrain generation from `terrainSeed` (height + obstacles fed into `PathfindingManager.SetBlockedRect`
+1. Campaign map scene (Milestone 4): mission list driven by `CampaignManager.IsUnlocked`/`StarLabel`,
+   replacing the results card's direct Next Mission hop.
+2. Terrain generation from `terrainSeed` (height + obstacles fed into `PathfindingManager.SetBlockedRect`
    and terrain costs), plus fog/decoration pass.
-5. Audio: gather, build, combat and UI cues; music loop.
-6. Ad/IAP integration behind the `AdvertisingService` abstraction, with Google test ad units until
+3. Audio: gather, build, combat and UI cues; music loop.
+4. Ad/IAP integration behind the `AdvertisingService` abstraction, with Google test ad units until
    the app is published.
-7. iOS: install the Hub `ios` module, produce the Xcode project, profile on device, then iterate on
-   touch feel.
+5. iOS: install the Hub `ios` module, produce the Xcode project, profile on device, then iterate on
+   HUD safe-area layout and touch feel.
 
 ## 6. Required external account configuration
 
-- **Apple Developer Program** membership; a signing team for `com.empirerush.kingdom`.
+- **Apple Developer Program** membership; a signing team for `com.princejain756.lifeofempires`.
 - **App Store Connect**: bundle id registered, Agreements/Tax/Banking complete, three non-consumable
   products created with the identifiers in `MONETIZATION_SETUP.md`, screenshots and metadata.
 - **Google AdMob**: account, app registration for the iOS bundle id, one rewarded ad unit; the App ID

@@ -1,4 +1,4 @@
-# iOS Release Guide — Empire Rush
+# iOS Release Guide — Life of Empires
 
 Status of the iOS target for this build. Read this before attempting an App Store build.
 
@@ -38,13 +38,13 @@ To unblock:
 
 ## 3. iOS settings already applied by the project
 
-`EmpireRush.Editor.ProjectBootstrap.Run` writes all of these, so they survive a fresh clone as soon
+`LifeOfEmpires.Editor.ProjectBootstrap.Run` writes all of these, so they survive a fresh clone as soon
 as the bootstrap is re-run:
 
 | Setting | Value | API used |
 |---|---|---|
-| Company / product | `EmpireRush` / `EmpireRush` | `PlayerSettings.companyName`, `productName` |
-| Bundle identifier | `com.empirerush.kingdom` | `PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, …)` |
+| Company / product | `Life of Empires` / `Life of Empires` | `PlayerSettings.companyName`, `productName` |
+| Bundle identifier | `com.princejain756.lifeofempires` | `PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, …)` |
 | Bundle version | `0.1.0` | `PlayerSettings.bundleVersion` |
 | Scripting backend | IL2CPP | `SetScriptingBackend(NamedBuildTarget.iOS, ScriptingImplementation.IL2CPP)` |
 | Minimum iOS | 15.0 | `PlayerSettings.iOS.targetOSVersionString` |
@@ -52,7 +52,7 @@ as the bootstrap is re-run:
 | Full screen | required | `PlayerSettings.iOS.requiresFullScreen` |
 | Status bar | hidden | `PlayerSettings.statusBarHidden` |
 | Active input handling | Both (`2`) | `ProjectSettings.asset: activeInputHandler` |
-| Render pipeline | `EmpireRush_URP.asset` assigned to `GraphicsSettings.defaultRenderPipeline` | bootstrap |
+| Render pipeline | `LifeOfEmpires_URP.asset` assigned to `GraphicsSettings.defaultRenderPipeline` | bootstrap |
 
 Notes for maintainers: in Unity 6 there is **no `PlayerSettings.iOSRequiresFullScreen` or
 `PlayerSettings.iOSStatusBarHidden`** — only the `PlayerSettings.iOS.*` forms above exist.
@@ -71,7 +71,7 @@ Headless (after the module is installed):
 ```bash
 U=/Applications/Unity/Hub/Editor/6000.6.5f1-arm64/Unity.app/Contents/MacOS/Unity
 gtimeout 1800 "$U" -projectPath "$PWD" -batchmode -quit -nographics \
-  -buildTarget iOS -executeMethod EmpireRush.Editor.ProjectBootstrap.Run \
+  -buildTarget iOS -executeMethod LifeOfEmpires.Editor.ProjectBootstrap.Run \
   -logFile /tmp/er_ios_bootstrap.log
 ```
 
@@ -85,7 +85,7 @@ Xcode project is produced from the Build Settings dialog. Then:
 
 ## 5. App Store preparation checklist
 
-- [ ] Bundle identifier registered in App Store Connect (`com.empirerush.kingdom`).
+- [ ] Bundle identifier registered in App Store Connect (`com.princejain756.lifeofempires`).
 - [ ] 1024×1024 app icon (not yet authored).
 - [ ] Screenshots for the required iPhone size classes.
 - [ ] Age rating questionnaire (mild fantasy violence).

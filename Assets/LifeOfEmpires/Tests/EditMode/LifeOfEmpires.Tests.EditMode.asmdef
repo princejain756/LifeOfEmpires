@@ -1,0 +1,25 @@
+{
+    "name": "LifeOfEmpires.Tests.EditMode",
+    "rootNamespace": "LifeOfEmpires.Tests.EditMode",
+    "references": [
+        "LifeOfEmpires.Runtime",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
