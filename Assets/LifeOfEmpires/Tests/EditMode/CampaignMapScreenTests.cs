@@ -175,6 +175,17 @@ namespace LifeOfEmpires.Tests.EditMode
             Assert.IsNotNull(mapContent, "the map surface must exist inside the scroll content");
             Assert.AreEqual(content.sizeDelta.y, ((RectTransform)mapContent).sizeDelta.y, 0.01f,
                 "the map surface must fill the whole scroll content");
+
+            // Nodes anchor by fraction horizontally — a pixel x would bake in whatever width the
+            // canvas measured at author time and clip off-screen on a differently-sized viewport.
+            for (int i = 0; i < nodes.Count && i < screen.state.Rows.Count; i++)
+            {
+                var rowRect = screen.state.Rows[i].Button.GetComponent<RectTransform>();
+                Assert.AreEqual(nodes[i].Anchor.x, rowRect.anchorMin.x, 0.001f,
+                    $"row {i} must anchor its x at the layout fraction");
+                Assert.AreEqual(nodes[i].Anchor.x, rowRect.anchorMax.x, 0.001f,
+                    $"row {i} must anchor its x at the layout fraction");
+            }
         }
 
         private static Transform FindByName(Transform root, string name)

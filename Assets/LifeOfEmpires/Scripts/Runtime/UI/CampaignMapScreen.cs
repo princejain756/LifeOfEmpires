@@ -61,12 +61,13 @@ namespace LifeOfEmpires.UI
         // The scroll viewport's effective width in reference pixels (1080 minus its insets); the
         // real rect width is preferred when layout has already run.
         private const float FallbackMapWidth = 1032f;
-        private const float NodeSize = 220f;
-        private const float PlateSize = 110f;
-        private const float PlateCentre = 64f;
-        private const float TitleBand = 80f;
-        private const float StarRowHeight = 40f;
-        private const float NodeTail = 320f;
+        private const float NodeSize = 300f;
+        private const float PlateSize = 170f;
+        private const float PlateCentre = 110f;
+        private const float TitleBand = 64f;
+        private const float StarRowHeight = 44f;
+        private const float StatusBand = 40f;
+        private const float NodeTail = 60f;
 
         private static readonly Color UnlockedTint = new Color(1f, 1f, 1f);
         private static readonly Color CompletedTint = new Color(0.72f, 0.92f, 0.66f);
@@ -204,7 +205,10 @@ namespace LifeOfEmpires.UI
             // Size both rects from the real viewport width before any child lands inside them.
             ApplyContentHeight();
             RectTransform mapContent = _mapContent;
-            float mapWidth = _mapWidth;
+            // Positions bake against the reference width: nodes anchor by fraction horizontally and
+            // by pixel vertically, so the layout is identical at any runtime viewport width — the
+            // batch editor's canvas measures far wider than a phone and must not distort the bake.
+            float mapWidth = FallbackMapWidth;
 
             // tex_grass imports as a Default texture (the material path needs that), not a sprite —
             // so the terrain backdrop goes through RawImage rather than the sprite loader.
@@ -246,7 +250,10 @@ namespace LifeOfEmpires.UI
 
             Canvas.ForceUpdateCanvases();
             RectTransform viewport = menu.listRoot.parent as RectTransform;
-            _mapWidth = viewport != null && viewport.rect.width > 1f ? viewport.rect.width : FallbackMapWidth;
+            float measured = viewport != null ? viewport.rect.width : 0f;
+            // The scroll extent is the one place the real width is wanted — never let a measured
+            // width shrink it below the reference bake, which is what the node positions assume.
+            _mapWidth = Mathf.Max(measured, FallbackMapWidth);
 
             float contentHeight = Mathf.Max(400f, CampaignMapLayout.ContentHeight(_nodes) * _mapWidth + NodeTail);
             menu.SetContentHeight(contentHeight);
@@ -258,17 +265,21 @@ namespace LifeOfEmpires.UI
             CampaignMapLayout.ExtentOf(bandNodes, out float minY, out float maxY);
             float bandTop = Mathf.Max(0.02f, minY - CampaignMapLayout.HeaderGap * 0.85f);
 
-            // Territory header: name plus its conquest tally, centred above the band.
+            // Territory header: name plus its conquest tally on a wooden banner above the band.
             (int stars, int configured, bool conquered) = CampaignManager.TerritoryProgress(database, save, territory);
             string headerText = conquered
                 ? $"{territory}  {stars}/{configured}  —  CONQUERED"
                 : $"{territory}  {stars}/{configured}";
-            Text header = UiFactory.Label($"Territory_{territory}", mapContent, headerText, 32, TextAnchor.MiddleCenter, UiFactory.AccentColor);
+            Image banner = UiFactory.Icon($"Banner_{territory}", mapContent, "btn_wood");
+            banner.raycastTarget = false;
+            banner.preserveAspect = false;
+            UiFactory.Place(banner.rectTransform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -bandTop * mapWidth), new Vector2(660f, 96f));
+            Text header = UiFactory.Label($"Territory_{territory}", banner.rectTransform, headerText, 36, TextAnchor.MiddleCenter, UiFactory.AccentColor);
             header.raycastTarget = false;
-            header.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
-            UiFactory.Place(header.rectTransform,
-                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -bandTop * mapWidth), new Vector2(0f, 56f));
+            header.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.85f);
+            UiFactory.Stretch(header.rectTransform, left: 20f, right: 20f);
             _headers.Add(header);
 
             // The ribbon: a wooden route line running between the band's first and last plates,
@@ -280,7 +291,7 @@ namespace LifeOfEmpires.UI
                 float ribbonBottom = maxY * mapWidth + PlateCentre;
                 UiFactory.Place(ribbon.rectTransform,
                     new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                    new Vector2(0f, -ribbonTop), new Vector2(14f, ribbonBottom - ribbonTop));
+                    new Vector2(0f, -ribbonTop), new Vector2(30f, ribbonBottom - ribbonTop));
             }
 
             foreach (MapNode node in bandNodes)
@@ -297,7 +308,7 @@ namespace LifeOfEmpires.UI
                     stub.rectTransform.anchorMax = new Vector2(right, 1f);
                     stub.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                     stub.rectTransform.anchoredPosition = new Vector2(0f, point.y - PlateCentre);
-                    stub.rectTransform.sizeDelta = new Vector2(0f, 10f);
+                    stub.rectTransform.sizeDelta = new Vector2(0f, 18f);
                 }
 
                 BuildNode(mapContent, node, point);
@@ -310,9 +321,11 @@ namespace LifeOfEmpires.UI
             // bind to it directly. Its top edge sits on the anchor point and hangs below it.
             var button = UiFactory.Button($"MissionRow_{node.Mission.missionId}", mapContent, string.Empty, 26, null);
             RectTransform rowRect = button.GetComponent<RectTransform>();
+            // x rides an anchor fraction of the map width — a pixel x would bake in whatever width
+            // the canvas happened to measure at author time and clip off-screen at runtime.
             UiFactory.Place(rowRect,
-                new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(point.x, point.y), new Vector2(NodeSize, NodeSize + NodeTail));
+                new Vector2(node.Anchor.x, 1f), new Vector2(node.Anchor.x, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, point.y), new Vector2(NodeSize, NodeSize + NodeTail));
             // The plaque face doesn't fit a square plate — the parchment disc is the visual.
             Image buttonFace = button.targetGraphic as Image;
             if (buttonFace != null) buttonFace.enabled = false;
@@ -322,47 +335,72 @@ namespace LifeOfEmpires.UI
 
             var visual = new NodeVisual();
 
-            // All children hang below the node's top edge: plate first, then title, stars, label.
+            // A soft drop shadow gives the plate depth against the grass.
+            Image plateShadow = UiFactory.Icon("PlateShadow", rowRect, "panel_parchment");
+            plateShadow.color = new Color(0f, 0f, 0f, 0.35f);
+            plateShadow.raycastTarget = false;
+            UiFactory.Place(plateShadow.rectTransform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f),
+                new Vector2(6f, -PlateCentre + 6f), new Vector2(PlateSize, PlateSize));
+
+            // All children hang below the node's top edge, stacked without overlap:
+            // plate, title banner, stars, then the status line.
             Image plate = UiFactory.Icon("Plate", rowRect, "panel_parchment");
+            plate.raycastTarget = false;
             UiFactory.Place(plate.rectTransform,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f),
                 new Vector2(0f, -PlateCentre), new Vector2(PlateSize, PlateSize));
             visual.Plate = plate;
 
             Image emblem = UiFactory.Icon("Emblem", rowRect, "icon_scroll");
+            emblem.raycastTarget = false;
             UiFactory.Place(emblem.rectTransform,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f),
-                new Vector2(0f, -PlateCentre), new Vector2(56f, 56f));
+                new Vector2(0f, -PlateCentre), new Vector2(92f, 92f));
             visual.Emblem = emblem;
 
-            Text title = UiFactory.Label("Title", rowRect, node.Mission.title, 26, TextAnchor.UpperCenter, UiFactory.TextColor);
+            // The title rides on a wooden banner below the plate — never on top of it.
+            Image titleBanner = UiFactory.Icon("TitleBanner", rowRect, "btn_wood");
+            titleBanner.raycastTarget = false;
+            titleBanner.preserveAspect = false;
+            UiFactory.Place(titleBanner.rectTransform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -(PlateCentre + PlateSize * 0.5f + 14f)), new Vector2(NodeSize + 60f, TitleBand));
+
+            Text title = UiFactory.Label("Title", rowRect, node.Mission.title, 26, TextAnchor.MiddleCenter, UiFactory.AccentColor);
+            title.raycastTarget = false;
             title.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.85f);
             UiFactory.Place(title.rectTransform,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0f),
-                new Vector2(0f, -(PlateCentre + PlateSize * 0.5f + 8f)), new Vector2(NodeSize + 100f, TitleBand));
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, -(PlateCentre + PlateSize * 0.5f + 14f + TitleBand * 0.5f)),
+                new Vector2(NodeSize + 40f, TitleBand));
 
+            float starsTop = PlateCentre + PlateSize * 0.5f + 22f + TitleBand;
             for (int s = 0; s < 3; s++)
             {
                 Image star = UiFactory.Icon($"Star{s}", rowRect, "icon_star");
+                star.raycastTarget = false;
                 UiFactory.Place(star.rectTransform,
-                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0f),
-                    new Vector2((s - 1) * 42f, -(PlateCentre + PlateSize * 0.5f + 10f + TitleBand)),
+                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                    new Vector2((s - 1) * 46f, -starsTop),
                     new Vector2(40f, 40f));
                 visual.Stars[s] = star;
             }
 
-            Text stars = UiFactory.Label("Stars", rowRect, string.Empty, 22, TextAnchor.MiddleCenter, UiFactory.AccentColor);
+            Text stars = UiFactory.Label("Stars", rowRect, string.Empty, 24, TextAnchor.MiddleCenter, UiFactory.AccentColor);
+            stars.raycastTarget = false;
             stars.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.85f);
             UiFactory.Place(stars.rectTransform,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0f),
-                new Vector2(0f, -(PlateCentre + PlateSize * 0.5f + 52f + TitleBand)),
-                new Vector2(NodeSize + 100f, StarRowHeight));
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -(starsTop + StarRowHeight + 4f)),
+                new Vector2(NodeSize + 60f, StatusBand));
 
             Image lockIcon = UiFactory.Icon("Lock", rowRect, "icon_lock");
+            lockIcon.raycastTarget = false;
             UiFactory.Place(lockIcon.rectTransform,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f),
-                new Vector2(0f, -PlateCentre), new Vector2(44f, 44f));
-            lockIcon.color = new Color(1f, 1f, 1f, 0.92f);
+                new Vector2(0f, -PlateCentre), new Vector2(64f, 64f));
+            lockIcon.color = new Color(1f, 1f, 1f, 0.95f);
 
             _visuals.Add(visual);
             state.Rows.Add(new MissionRow

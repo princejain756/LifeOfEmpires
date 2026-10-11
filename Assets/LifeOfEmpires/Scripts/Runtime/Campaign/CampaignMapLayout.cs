@@ -62,7 +62,7 @@ namespace LifeOfEmpires
     public static class CampaignMapLayout
     {
         /// <summary>Vertical pitch between missions of one territory, in map-width units.</summary>
-        public const float NodeSpacing = 0.34f;
+        public const float NodeSpacing = 0.40f;
 
         /// <summary>Band gap below a territory's lowest node, in map-width units.</summary>
         public const float TerritoryGap = 0.16f;
