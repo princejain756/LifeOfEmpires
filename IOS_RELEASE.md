@@ -62,10 +62,36 @@ This builds every scene in `EditorBuildSettings.scenes` into `Builds/iOS/` (git-
 the batch run on any build error. Interactive alternative: File > Build Settings > iOS > Switch
 Platform > Build.
 
-Then, to reach a device:
+## 4b. Signed device build (headless, verified working)
+
+The Unity project is manual-signing by default; override to automatic on the command line. Team
+`287KM9YTH9` is the account registered in Xcode and produces an Xcode-managed wildcard development
+profile covering the registered devices:
+
+```bash
+cd Builds/iOS
+xcodebuild -project Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Release \
+  -destination 'generic/platform=iOS' -allowProvisioningUpdates \
+  CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=287KM9YTH9 PROVISIONING_PROFILE_SPECIFIER= \
+  -derivedDataPath /tmp/loe_dd build
+# Signed app: /tmp/loe_dd/Build/Products/Release-iphoneos/LifeofEmpires.app
+```
+
+A built copy is kept at `Builds/LifeofEmpires.app`. Install it to a connected iPhone:
+
+```bash
+xcrun devicectl list devices            # get the device Identifier
+xcrun devicectl device install app --device <IDENTIFIER> Builds/LifeofEmpires.app
+```
+
+Note: team `5HK87VF3J4` (the personal dev cert's team) is **not** registered in Xcode Accounts —
+builds must target `287KM9YTH9`. The Xcode-managed profile is development (`get-task-allow`), so
+the app installs on registered devices only; TestFlight needs an App Store distribution profile.
+
+Manual alternative:
 
 1. Open `Builds/iOS/Unity-iPhone.xcodeproj` in Xcode 26.3.
-2. Signing & Capabilities → set the Team; keep automatic signing.
+2. Signing & Capabilities → Team `287KM9YTH9`, automatic signing.
 3. Select the `Unity-iPhone` scheme, a physical device, and Run to install.
 4. TestFlight: Product → Archive → Distribute App → App Store Connect.
 

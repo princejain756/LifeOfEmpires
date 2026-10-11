@@ -209,14 +209,12 @@ Recorded because each was a real, observable failure, not a refactor:
 
 Nothing below has been observed to work, and none of it is claimed:
 
-- **Signed device build, TestFlight, App Store submission.** The **iOS Build Support** module is
-  now installed and the Xcode project is produced headlessly
-  (`LifeOfEmpires.Editor.BuildIosXcodeProject` → `Builds/iOS/Unity-iPhone.xcodeproj`, exit 0,
-  `IOS_XCODE_OK`). The IL2CPP `GameAssembly` target **compiled for arm64 / iPhoneOS 26.2 SDK**
-  (`xcodebuild … CODE_SIGNING_ALLOWED=NO`, `libGameAssembly.a`, exit 0). Not yet done: linking and
-  signing the `Unity-iPhone` app target (needs the developer's Apple team), installing on a device,
-  TestFlight. Xcode 26.3 / iOS SDK 26.2 satisfy Apple's October 2026 requirement — see
-  `IOS_RELEASE.md`.
+- **Device install, TestFlight, App Store submission.** A **signed** `LifeofEmpires.app` exists at
+  `Builds/LifeofEmpires.app` — full `xcodebuild` pipeline (GameAssembly + UnityFramework + app,
+  exit 0) signed with the Apple Development cert under an Xcode-managed wildcard development
+  profile covering the two registered iPhones (see `IOS_RELEASE.md` §4b for the exact commands).
+  Not yet done: physical install (no device was reachable at build time), on-device run,
+  TestFlight (needs an App Store distribution profile).
 - **On-device performance.** Frame rate, GC spiking, memory ceiling, thermal behaviour, IL2CPP/AOT
   build time, and battery impact on a real iPhone.
 - **Touch feel on hardware.** Tap forgiveness, pinch-vs-pan disambiguation, and one-handed reach have
