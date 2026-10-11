@@ -1,0 +1,12 @@
+<linker>
+  <!-- Colliders reach scenes only through GameObject.CreatePrimitive internals and
+       scene deserialization, so no managed code keeps their concrete types alive.
+       Without this, IL2CPP strips them and every raycast/tap on the world misses. -->
+  <assembly fullname="UnityEngine.PhysicsModule">
+    <type fullname="UnityEngine.MeshCollider" preserve="all"/>
+    <type fullname="UnityEngine.BoxCollider" preserve="all"/>
+    <type fullname="UnityEngine.SphereCollider" preserve="all"/>
+    <type fullname="UnityEngine.CapsuleCollider" preserve="all"/>
+    <type fullname="UnityEngine.Rigidbody" preserve="all"/>
+  </assembly>
+</linker>

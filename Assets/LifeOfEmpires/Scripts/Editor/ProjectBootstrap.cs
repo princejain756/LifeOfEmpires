@@ -65,6 +65,7 @@ namespace LifeOfEmpires.Editor
 
                 RenderPipelineAsset urpAsset = CreateRenderPipelineAssets();
                 GameDatabase database = CreateContentAssets();
+                EnsureShaderKeepMaterials();
                 ConfigureRenderPipeline(urpAsset);
                 if (urpAsset is UniversalRenderPipelineAsset universal) ConfigureRenderPipelineSettings(universal);
                 ConfigureQualityTiers(urpAsset);
@@ -90,6 +91,32 @@ namespace LifeOfEmpires.Editor
         {
             if (!AssetDatabase.IsValidFolder($"{parent}/{child}")) AssetDatabase.CreateFolder(parent, child);
         }
+
+        // Runtime code resolves shaders by name with Shader.Find, but nothing in the build keeps a
+        // shader alive unless a shipped asset references it. One material per shader in Resources
+        // is the smallest durable reference; without it every runtime material renders magenta.
+        private static void EnsureShaderKeepMaterials()
+        {
+            EnsureFolder(Root, "Resources");
+            string resourcesFolder = Root + "/Resources";
+            foreach (string shaderName in ShaderKeepNames)
+            {
+                string path = $"{resourcesFolder}/ShaderKeep_{shaderName.Replace('/', '_').Replace(' ', '_')}.mat";
+                if (AssetDatabase.LoadAssetAtPath<Material>(path) != null) continue;
+                Shader shader = Shader.Find(shaderName);
+                if (shader == null) continue; // fallback shader absent on this install — harmless
+                AssetDatabase.CreateAsset(new Material(shader), path);
+            }
+        }
+
+        private static readonly string[] ShaderKeepNames =
+        {
+            "Universal Render Pipeline/Lit",
+            "Universal Render Pipeline/Unlit",
+            "Unlit/Color",
+            "Sprites/Default",
+            "Standard"
+        };
 
         // -----------------------------------------------------------------------------------------
         // Render pipeline
