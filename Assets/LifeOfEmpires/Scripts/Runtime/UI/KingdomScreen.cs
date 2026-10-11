@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using LifeOfEmpires.Audio;
 
 namespace LifeOfEmpires.UI
 {
@@ -28,10 +29,15 @@ namespace LifeOfEmpires.UI
         public Text stageLabel;
         public Text crownsLabel;
         public Text noteLabel;
+        public Button musicButton;
+        public Button effectsButton;
         public List<UpgradeRow> Rows = new List<UpgradeRow>();
 
         private const float RowHeight = 150f;
         private const float RowSpacing = 20f;
+
+        /// <summary>Discrete volume stops offered per channel: 20/40/60/80/100%, then off.</summary>
+        private const int VolumeSteps = 5;
 
         public void Build(GameDatabase database)
         {
@@ -83,6 +89,8 @@ namespace LifeOfEmpires.UI
                         : $"{row.Upgrade.title} ({row.Upgrade.crownCost} crowns)";
                 }
             }
+
+            RefreshAudioRowLabels();
         }
 
         private void Start()
@@ -131,6 +139,20 @@ namespace LifeOfEmpires.UI
 
         private void BuildControls()
         {
+            // Audio rows sit above the note and Back rows, which keep their existing y, so nothing
+            // that was already placed moves.
+            RectTransform musicRow = menu.NewRow("MusicRow");
+            UiFactory.Place(musicRow,
+                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
+                new Vector2(0f, 440f), new Vector2(-20f, 110f));
+            musicButton = UiFactory.SettingRow(musicRow, "Music", "Music", "Music: 60%", CycleMusic);
+
+            RectTransform effectsRow = menu.NewRow("EffectsRow");
+            UiFactory.Place(effectsRow,
+                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
+                new Vector2(0f, 340f), new Vector2(-20f, 110f));
+            effectsButton = UiFactory.SettingRow(effectsRow, "Effects", "Effects", "Effects: 80%", CycleEffects);
+
             noteLabel = UiFactory.Label("Note", menu.listRoot, string.Empty, 28, TextAnchor.MiddleLeft, UiFactory.AccentColor);
             UiFactory.Place(noteLabel.rectTransform,
                 new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
@@ -140,6 +162,63 @@ namespace LifeOfEmpires.UI
             UiFactory.Place(back.GetComponent<RectTransform>(),
                 new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
                 new Vector2(0f, 20f), new Vector2(-20f, 100f));
+        }
+
+        /// <summary>Step the music volume through 20/40/60/80/100% and then off, wrapping to 20%.</summary>
+        private void CycleMusic()
+        {
+            SaveData save = SaveSystem.ReadFromDisk();
+            int step = NextVolumeStep(save.musicVolume, save.musicMuted);
+            bool muted = step > VolumeSteps;
+            float volume = muted ? 1f : step / (float)VolumeSteps;
+
+            save.musicVolume = volume;
+            save.musicMuted = muted;
+            SaveSystem.WriteToDisk(save);
+
+            if (AudioManager.Current != null) AudioManager.Current.SetMusicVolume(volume, muted);
+            RefreshAudioRowLabels();
+        }
+
+        /// <summary>Step the sound-effect volume through the same stops.</summary>
+        private void CycleEffects()
+        {
+            SaveData save = SaveSystem.ReadFromDisk();
+            int step = NextVolumeStep(save.sfxVolume, save.sfxMuted);
+            bool muted = step > VolumeSteps;
+            float volume = muted ? 1f : step / (float)VolumeSteps;
+
+            save.sfxVolume = volume;
+            save.sfxMuted = muted;
+            SaveSystem.WriteToDisk(save);
+
+            if (AudioManager.Current != null) AudioManager.Current.SetEffectVolume(volume, muted);
+            RefreshAudioRowLabels();
+        }
+
+        /// <summary>
+        /// The next stop in the cycle. A muted channel seeds from zero so pressing "off" returns to the
+        /// lowest audible stop; seeding from the stored gain would leave the button stuck on "off"
+        /// forever, because muted always stores the maximum gain.
+        /// </summary>
+        private static int NextVolumeStep(float volume, bool muted)
+        {
+            int step = muted ? 0 : Mathf.RoundToInt(Mathf.Clamp01(volume) * VolumeSteps);
+            return step + 1;
+        }
+
+        /// <summary>Write both channel labels from the save; called on build, and after every cycle.</summary>
+        private void RefreshAudioRowLabels()
+        {
+            SaveData save = SaveSystem.ReadFromDisk();
+
+            if (musicButton != null) musicButton.GetComponentInChildren<Text>().text = VolumeLabel("Music", save.musicVolume, save.musicMuted);
+            if (effectsButton != null) effectsButton.GetComponentInChildren<Text>().text = VolumeLabel("Effects", save.sfxVolume, save.sfxMuted);
+        }
+
+        private static string VolumeLabel(string channel, float volume, bool muted)
+        {
+            return muted ? $"{channel}: off" : $"{channel}: {Mathf.RoundToInt(Mathf.Clamp01(volume) * 100f)}%";
         }
 
         private void Buy(int index)

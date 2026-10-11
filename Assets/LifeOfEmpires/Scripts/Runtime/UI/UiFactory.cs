@@ -119,6 +119,25 @@ namespace LifeOfEmpires.UI
             }
         }
 
+        /// <summary>
+        /// A settings row: a caption on the left and one button on the right whose label carries the
+        /// current value. The row itself supplies the layout, so the caller places it exactly like any
+        /// other menu row and this stays consistent with the upgrade rows above it.
+        /// </summary>
+        public static Button SettingRow(Transform parent, string name, string label, string initialValue, Action onClick)
+        {
+            Text caption = Label($"{name}Label", parent, label, 28, TextAnchor.MiddleLeft, TextColor);
+            Place(caption.rectTransform,
+                Vector2.zero, Vector2.zero, Vector2.zero,
+                new Vector2(16f, 16f), new Vector2(440f, 90f));
+
+            Button button = Button($"{name}Button", parent, initialValue, 28, onClick);
+            Place(button.GetComponent<RectTransform>(),
+                new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
+                new Vector2(-16f, 0f), new Vector2(320f, 90f));
+            return button;
+        }
+
         /// <summary>Fill the parent, optionally inset. The default for full-bleed strips.</summary>
         public static void Stretch(RectTransform rect, float left = 0f, float bottom = 0f, float right = 0f, float top = 0f)
         {

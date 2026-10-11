@@ -7,10 +7,10 @@ Verified on this machine (macOS 24.6.0 arm64, Unity `6000.6.5f1`):
 
 | Check | Command | Result |
 |---|---|---|
-| Batch-mode compile | `Unity -projectPath . -batchmode -quit -nographics -logFile /tmp/rv1.log` | **exit 0**, `0` occurrences of `error CS` |
-| Bootstrap | `… -executeMethod LifeOfEmpires.Editor.ProjectBootstrap.Run -logFile /tmp/rv2.log` | **exit 0**, log contains `URP_PROBE_OK default=LifeOfEmpires_URP current=LifeOfEmpires_URP type=UniversalRenderPipelineAsset` (line 474) and `BOOTSTRAP_OK` (line 486) |
-| EditMode tests | `… -runTests -testPlatform EditMode -testResults /tmp/rv_edit.xml` | **exit 0**, `testcasecount="74" result="Passed"`, 74 passed / 0 failed |
-| PlayMode tests | `… -runTests -testPlatform PlayMode -testResults /tmp/rv_play.xml` | **exit 0**, `testcasecount="3" result="Passed"`, 3 passed / 0 failed |
+| Batch-mode compile | `Unity -projectPath . -batchmode -quit -nographics -logFile /tmp/r14fix_compile.log` | **exit 0**, `0` occurrences of `error CS` |
+| Bootstrap | `… -executeMethod LifeOfEmpires.Editor.ProjectBootstrap.Run -logFile /tmp/r14fix_boot.log` | **exit 0**, log contains `URP_PROBE_OK default=LifeOfEmpires_URP current=LifeOfEmpires_URP` (1 line) and `BOOTSTRAP_OK` (1 line) |
+| EditMode tests | `… -runTests -testPlatform EditMode -testResults /tmp/r14fix_edit.xml` | **exit 0**, `testcasecount="110" result="Passed"`, 110 passed / 0 failed |
+| PlayMode tests | `… -runTests -testPlatform PlayMode -testResults /tmp/r14fix_play.xml` | **exit 0**, `testcasecount="4" result="Passed"`, 4 passed / 0 failed |
 
 Every number here was observed in those runs; nothing is estimated.
 
@@ -25,11 +25,13 @@ Every number here was observed in those runs; nothing is estimated.
   `LifeOfEmpires.Tests.PlayMode`. Runtime code compiles against `UnityEngine` + `Unity.InputSystem`
   + `UnityEngine.UI` (uGUI 2.6.0, declared in `Packages/manifest.json`; `com.unity.modules.physics2d`
   is declared explicitly because it is uGUI's own hard dependency).
-- **Two real scenes**, both in `EditorBuildSettings`: `Bootstrap.unity` (loads `Battle`) and
+- **Five real scenes**, all in `EditorBuildSettings`: `Bootstrap.unity` (loads `Battle`),
   `Battle.unity` — ground plane in the spec palette `#85A66A`, isometric camera rig, player town
   hall + **player barracks**, 3 workers, 3 trees / 2 farms / 1 gold vein, enemy town hall + barracks
   + swordsman + spearman, all with URP/Lit materials and wired system references (database, mission,
-  economy, selection camera, camera rig), plus the **HUD canvas and one `EventSystem`**.
+  economy, selection camera, camera rig), plus the **HUD canvas and one `EventSystem`** — and the
+  `CampaignMap`, `Skirmish` and `Kingdom` menu screens. Every scene carries one `AudioManager`
+  holding that scene's single `AudioListener`.
 - **Economy.** `ResourceManager` with a single spend path; `EconomyBalance` data asset drives
   gathering, carry capacity, deposit time, construction rate. Negative results are refused, never
   clamped silently.
@@ -91,10 +93,23 @@ Every number here was observed in those runs; nothing is estimated.
   chosen mission and `GameBootstrap` picks it up when it composes the next battle.
 - **Content.** 4 unit definitions, 3 building definitions, 2 missions, 3 difficulty profiles, 1 economy
   balance — all as ScriptableObjects (`GAME_BALANCE.md`).
-- **Tests.** 74 EditMode tests (economy arithmetic, cost/definition agreement, pathfinding behaviour
-  and budgets, selection, objectives, save system, shipped-asset integrity, campaign unlock rules,
-  archer projectile pooling, the production refund path, HUD behaviour, and where a tap on the player's
-  own building is routed) and 3 PlayMode tests: the first
+- **Audio.** Four locally generated clips — `Music_Menu.wav` (24 s), `Music_Battle.wav` (28 s),
+  `Sting_Victory.wav` (12 s), `Sting_Defeat.wav` (12 s), all 32 kHz mono 16-bit — live in
+  `Assets/LifeOfEmpires/Audio/` and are duplicated into `Assets/LifeOfEmpires/Resources/` so
+  `Resources.Load<AudioClip>(name)` resolves them by name. All four came from the spec's local
+  generator (MusicGPT `small`); `GenerateAudioAssets` synthesises any missing clip procedurally and
+  was exercised once to prove it writes a valid PCM WAV. `AudioManager` owns playback (a looping music
+  source plus a one-shot effects source), reads the save on every volume change, and is reached
+  through `AudioManager.Current` at the point of use rather than a cached reference. The battle loop
+  is cut and the matching sting played from `BattleManager.HandleBattleEnded`, the one outcome path.
+  Each scene names its track by the `Resources` clip stem it must load — `Music_Battle` in `Battle`,
+  `Music_Menu` in the other four — and `AudioPlaybackWiringTests` reads that value back out of the
+  scene YAML and resolves it, so a name `Resources.Load` cannot find fails the suite instead of
+  shipping a silent scene (defect 12).
+- **Tests.** 110 EditMode tests (economy arithmetic, cost/definition agreement, pathfinding behaviour
+  and budgets, selection, objectives, save system, shipped-asset integrity, audio clip resolution and
+  scene wiring, campaign unlock rules, archer projectile pooling, the production refund path, HUD
+  behaviour, and where a tap on the player's own building is routed) and 4 PlayMode tests: the first
   builds a barracks through the real placement flow, waits for a dispatched worker to finish it, trains
   a swordsman and razes an enemy tower; the second trains an **archer** through the multi-unit
   production path and confirms the ranged unit that leaves the barracks; the third places an enemy in an
@@ -116,13 +131,19 @@ Every number here was observed in those runs; nothing is estimated.
   (`TapRoutingTests`).
 - **`terrainSeed` seeds determinism, not terrain.** It is passed to the enemy AI's random source.
   The battlefield is a flat plane; procedural terrain generation belongs to a later milestone.
-- **Art and audio are primitives and silence.** Units/buildings are Unity primitives with generated
-  URP/Lit materials; the HUD is flat colour blocks and the one builtin font (`LegacyRuntime.ttf`).
-  `Audio/`, `Prefabs/` and `Resources/` are reserved and empty.
+- **Art is primitives.** Units/buildings are Unity primitives with generated URP/Lit materials; the
+  HUD is flat colour blocks and the one builtin font (`LegacyRuntime.ttf`). `Prefabs/` is reserved and
+  empty.
+- **Audio covers music only.** Menu theme, battle loop and the victory/defeat stings ship (§1);
+  gathering, building, combat and generic UI cues do not — spec §18 lists them as its own category, and
+  reusing a sting for a wood deposit would be worse than silence. Music/effects volume and mute are set
+  from the **Kingdom** screen and persisted in `SaveData` (v2 → v3 migration fills audible defaults for
+  saves written before the fields existed). Whether a generated track *sounds* right is a listening
+  judgement no batch-mode gate can make.
 
 ## 3. Known bugs
 
-No known defect is open in the delivered systems: the 74 EditMode and 3 PlayMode tests pass, the
+No known defect is open in the delivered systems: the 110 EditMode and 4 PlayMode tests pass, the
 batch-mode compile is clean, and the bootstrap completes. Items in §2 are missing features, not
 malfunctions. Two design limits are worth calling out explicitly:
 
@@ -171,6 +192,18 @@ Recorded because each was a real, observable failure, not a refactor:
 10. Driving a pooled projectile's private `Update` callback through `SendMessage` from an EditMode
    test asserts `ShouldRunBehaviour()` inside the editor; the archer test now invokes the callback by
    reflection instead, which the engine's behaviour runner does not intercept.
+11. The volume control's first draft derived the next stop purely from the stored gain, and a muted
+   channel stores the maximum gain — so passing the top of the range muted the channel and it could
+   never be unmuted again. The cycle now seeds from the mute flag, so "off" returns to the lowest
+   audible stop; clamping and the persisted values are unchanged.
+12. The five scenes were authored with the **semantic** keys `menu`/`battle` in `AudioManager.music`
+   while `PlayMusic` resolves that string with `Resources.Load<AudioClip>`, whose stems are
+   `Music_Menu`/`Music_Battle`. Every scene therefore ran silent — and compile, bootstrap, the whole
+   EditMode suite and the 4 PlayMode tests all stayed green, because nothing read the value back.
+   Caught in review, not by automation. Fixed in `ProjectBootstrap.CreateAudioManager` and the
+   `BuildBattleScene` call site (the strings, not the file names), the bootstrap re-run to re-author
+   all five scenes, and `AudioPlaybackWiringTests` now fails on the old value — verified by
+   reintroducing `music: battle` into `Battle.unity` and watching it fail before restoring.
 
 ## 4. Unverified functionality
 
@@ -195,7 +228,12 @@ Nothing below has been observed to work, and none of it is claimed:
 - **Campaign progression beyond one hop.** The unlock rule and Next Mission button are unit-tested,
   and the unlock rule is exercised in PlayMode/EditMode, but no run has been watched through two
   consecutive missions in a built player.
-- **Procedural terrain and audio** — not implemented, therefore not verified.
+- **Procedural terrain** — not implemented, therefore not verified.
+- **Audio it cannot hear.** The four clips load and the five scenes now name a `Resources` stem that
+  resolves (`AudioPlaybackWiringTests` asserts both, having failed on the pre-fix value), each scene
+  carries one `AudioListener` and one `AudioManager`, and the `AudioSource`s are wired. Batch mode has
+  no audio device, though: nobody has *heard* the generated tracks, and no device has played them.
+  Volume/mute round-trips are unit-tested; the listening pass is not.
 
 ## 5. Next steps
 
@@ -203,7 +241,8 @@ Nothing below has been observed to work, and none of it is claimed:
    replacing the results card's direct Next Mission hop.
 2. Terrain generation from `terrainSeed` (height + obstacles fed into `PathfindingManager.SetBlockedRect`
    and terrain costs), plus fog/decoration pass.
-3. Audio: gather, build, combat and UI cues; music loop.
+3. Audio: gather, build, combat and generic UI cues (music and the outcome stings ship), then a
+   listening pass on device.
 4. Ad/IAP integration behind the `AdvertisingService` abstraction, with Google test ad units until
    the app is published.
 5. iOS: install the Hub `ios` module, produce the Xcode project, profile on device, then iterate on

@@ -6,6 +6,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using LifeOfEmpires.Audio;
 using LifeOfEmpires.UI;
 
 namespace LifeOfEmpires.Editor
@@ -28,6 +29,7 @@ namespace LifeOfEmpires.Editor
         private const string DataFolder = Root + "/Data";
         private const string ScenesFolder = Root + "/Scenes";
         private const string ArtFolder = Root + "/Art/Materials";
+        private const string AudioFolder = Root + "/Audio";
 
         private const string UrpAssetPath = SettingsFolder + "/LifeOfEmpires_URP.asset";
         private const string UrpRendererPath = SettingsFolder + "/LifeOfEmpires_Renderer.asset";
@@ -1091,6 +1093,9 @@ namespace LifeOfEmpires.Editor
             CreateUnit("EnemySwordsman_1", new Vector3(51f, 0f, 50f), swordsmanDefinition, Team.Enemy, swordsmanMaterial);
             CreateUnit("EnemySpearman_1", new Vector3(53f, 0f, 49f), spearmanDefinition, Team.Enemy, spearmanMaterial);
 
+            AudioManager audio = CreateAudioManager();
+            audio.music = "Music_Battle";
+
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, BattleScenePath))
             {
@@ -1114,6 +1119,8 @@ namespace LifeOfEmpires.Editor
             bootstrap.database = liveDatabase;
             bootstrap.economyBalance = liveDatabase.economy;
 
+            CreateAudioManager();
+
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, BootstrapScenePath))
             {
@@ -1135,6 +1142,8 @@ namespace LifeOfEmpires.Editor
             screen.database = liveDatabase;
             screen.Build(liveDatabase);
             BattleHud.EnsureEventSystem();
+
+            CreateAudioManager();
 
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, CampaignMapScenePath))
@@ -1158,6 +1167,8 @@ namespace LifeOfEmpires.Editor
             screen.Build(liveDatabase);
             BattleHud.EnsureEventSystem();
 
+            CreateAudioManager();
+
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, SkirmishScenePath))
             {
@@ -1179,6 +1190,8 @@ namespace LifeOfEmpires.Editor
             screen.database = liveDatabase;
             screen.Build(liveDatabase);
             BattleHud.EnsureEventSystem();
+
+            CreateAudioManager();
 
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, KingdomScenePath))
@@ -1217,6 +1230,22 @@ namespace LifeOfEmpires.Editor
             light.color = new Color(1f, 0.96f, 0.89f);
             light.intensity = 1.1f;
             light.shadows = LightShadows.Soft;
+        }
+
+        /// <summary>
+        /// One audio object per scene. It owns the scene's single <see cref="AudioListener"/>, so a
+        /// scene authored without it plays nothing however many clips are on disk.
+        /// </summary>
+        private static AudioManager CreateAudioManager()
+        {
+            var go = new GameObject("AudioManager");
+            // The listener is authored, not only added at runtime, so the shipped scene is audible
+            // with no code path in between and every one of the five scenes has exactly one.
+            go.AddComponent<AudioListener>();
+
+            AudioManager audio = go.AddComponent<AudioManager>();
+            audio.music = "Music_Menu";
+            return audio;
         }
 
         private static GameObject CreatePrimitive(string name, PrimitiveType type, Vector3 position, Vector3 scale, Material material)

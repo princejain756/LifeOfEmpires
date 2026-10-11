@@ -34,7 +34,7 @@ namespace LifeOfEmpires
     public class SaveData
     {
         /// <summary>Bumped whenever the shape below changes; used to migrate rather than discard.</summary>
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         /// <summary>
         /// Bring a payload written by an older build up to the current shape. Version 1 had no kingdom
@@ -46,6 +46,16 @@ namespace LifeOfEmpires
             if (data == null) return;
             data.ownedUpgrades ??= new List<string>();
             if (data.saveVersion < 2) data.saveVersion = 2;
+
+            if (data.saveVersion < 3)
+            {
+                // An absent float deserialises to 0, which the volume readers treat as "muted" — so
+                // without this branch every player who saved before audio existed would be shipped a
+                // silent game. Only an explicit default fixes that.
+                if (data.musicVolume <= 0f) data.musicVolume = 0.6f;
+                if (data.sfxVolume <= 0f) data.sfxVolume = 0.8f;
+                data.saveVersion = 3;
+            }
         }
 
         /// <summary>
@@ -80,6 +90,21 @@ namespace LifeOfEmpires
 
         /// <summary>Skirmish wins recorded, used to gate the skirmish crown reward (spec §12).</summary>
         public int skirmishWins;
+
+        /// <summary>Master music gain 0..1 (spec §17 "Audio preferences", §18 "Music").</summary>
+        public float musicVolume = 0.6f;
+
+        /// <summary>True when the player muted music; separate from the gain so unmuting restores it.</summary>
+        public bool musicMuted;
+
+        /// <summary>Master sound-effect gain 0..1 (spec §17 "Audio preferences", §18 "Sound effects").</summary>
+        public float sfxVolume = 0.8f;
+
+        /// <summary>True when the player muted sound effects.</summary>
+        public bool sfxMuted;
+
+        /// <summary>Set on the first campaign victory, so a later build can skip the guided opening (spec §17 "Tutorial completion").</summary>
+        public bool tutorialCompleted;
 
         public MissionRecord? FindMission(string missionId)
         {

@@ -58,6 +58,21 @@ namespace LifeOfEmpires.Tests.EditMode
         }
 
         [Test]
+        public void HudBuildsTheFirstRunHintLines()
+        {
+            TestWorld.Build();
+            BattleHud hud = BuildHud();
+
+            Assert.IsNotNull(hud.hintLabel, "the objective hint must exist");
+            Assert.IsNotNull(hud.cueLabel, "the gather cue must exist");
+            Assert.AreSame(hud.resourcesBar.woodLabel.font, hud.hintLabel.font,
+                "the hints must share the one builtin font");
+            Assert.AreSame(hud.resourcesBar.woodLabel.font, hud.cueLabel.font,
+                "the hints must share the one builtin font");
+            Assert.IsNotEmpty(hud.cueLabel.text, "the gather cue must actually tell the player something");
+        }
+
+        [Test]
         public void ResourceBar_FollowsTheStockpileInsteadOfPolling()
         {
             TestWorld.Build();

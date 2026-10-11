@@ -34,6 +34,8 @@ namespace LifeOfEmpires.UI
         public UIProductionPanel productionPanel;
         public UIResultsPanel resultsPanel;
         public Button pauseButton;
+        public Text hintLabel;
+        public Text cueLabel;
 
         private UnitSelectionManager _selection;
         private BuildingPlacementSystem _placement;
@@ -69,6 +71,19 @@ namespace LifeOfEmpires.UI
             UiFactory.Stretch(root);
             safeArea = root.gameObject.AddComponent<SafeAreaFitter>();
 
+            // First-run guidance (spec §28): one hint line and one control cue, sitting in the free
+            // band below the resource bar and left of the pause button. They are hints, not gates —
+            // nothing waits on the player reading them.
+            hintLabel = UiFactory.Label("ObjectiveHint", root, BuildObjectiveText(), 30, TextAnchor.UpperLeft, UiFactory.TextColor);
+            UiFactory.Place(hintLabel.rectTransform,
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -104f), new Vector2(-236f, 56f));
+
+            cueLabel = UiFactory.Label("GatherCue", root, "Tap a worker, then tap a tree or farm to gather.", 26, TextAnchor.UpperLeft, UiFactory.AccentColor);
+            UiFactory.Place(cueLabel.rectTransform,
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -162f), new Vector2(-236f, 48f));
+
             resourcesBar = root.gameObject.AddComponent<UIResourcesBar>();
             resourcesBar.Build(root);
 
@@ -98,6 +113,9 @@ namespace LifeOfEmpires.UI
             if (resourcesBar == null && context != null) Build(context.Database);
             if (resourcesBar == null) return;
 
+            // At first Build the context may not exist yet, so the hint is refreshed here too.
+            if (hintLabel != null) hintLabel.text = BuildObjectiveText();
+
             resourcesBar.Bind(context);
 
             UnitSelectionManager selection = null;
@@ -120,6 +138,17 @@ namespace LifeOfEmpires.UI
 
             _selection = selection;
             _placement = placement;
+        }
+
+        /// <summary>
+        /// The objective line shown at battle start. It reuses the mission briefing the player already
+        /// read, so the objective is never worded twice differently (spec §28 "teach through actions").
+        /// </summary>
+        private static string BuildObjectiveText()
+        {
+            MissionDefinition mission = BattleContext.Current != null ? BattleContext.Current.Mission : null;
+            if (mission == null || string.IsNullOrEmpty(mission.briefing)) return string.Empty;
+            return $"{mission.title}: {mission.briefing}";
         }
 
         /// <summary>Author the one EventSystem the HUD needs. Never adds a second input module.</summary>

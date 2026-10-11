@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using LifeOfEmpires.Audio;
 
 namespace LifeOfEmpires
 {
@@ -439,6 +440,10 @@ namespace LifeOfEmpires
 
             if (Context != null) Context.Outcome = outcome;
 
+            // The one place a battle resolves, so the one place the outcome sting is fired. Resolved
+            // through Current rather than a cached field because teardown can clear the registration.
+            if (AudioManager.Current != null) AudioManager.Current.PlayOutcomeSting(outcome);
+
             if (objectives != null && _mission != null)
             {
                 SaveData save = SaveSystem.ReadFromDisk();
@@ -463,6 +468,9 @@ namespace LifeOfEmpires
                     {
                         save.crowns += _mission.crownReward;
                     }
+
+                    // A first victory is what "the player has been taught the opening" means (spec §17).
+                    save.tutorialCompleted = true;
                 }
 
                 SaveSystem.WriteToDisk(save);
