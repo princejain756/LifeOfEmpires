@@ -209,10 +209,14 @@ Recorded because each was a real, observable failure, not a refactor:
 
 Nothing below has been observed to work, and none of it is claimed:
 
-- **iOS device build, simulator build, TestFlight, App Store submission.** Blocked: the Unity **iOS
-  Build Support** module is not installed on this machine (`PlaybackEngines/` holds only
-  `MacStandaloneSupport` and `WebGLSupport`). Xcode 26.3 / iOS SDK 26.2 *are* installed and satisfy
-  Apple's October 2026 requirement — see `IOS_RELEASE.md`.
+- **Signed device build, TestFlight, App Store submission.** The **iOS Build Support** module is
+  now installed and the Xcode project is produced headlessly
+  (`LifeOfEmpires.Editor.BuildIosXcodeProject` → `Builds/iOS/Unity-iPhone.xcodeproj`, exit 0,
+  `IOS_XCODE_OK`). The IL2CPP `GameAssembly` target **compiled for arm64 / iPhoneOS 26.2 SDK**
+  (`xcodebuild … CODE_SIGNING_ALLOWED=NO`, `libGameAssembly.a`, exit 0). Not yet done: linking and
+  signing the `Unity-iPhone` app target (needs the developer's Apple team), installing on a device,
+  TestFlight. Xcode 26.3 / iOS SDK 26.2 satisfy Apple's October 2026 requirement — see
+  `IOS_RELEASE.md`.
 - **On-device performance.** Frame rate, GC spiking, memory ceiling, thermal behaviour, IL2CPP/AOT
   build time, and battery impact on a real iPhone.
 - **Touch feel on hardware.** Tap forgiveness, pinch-vs-pan disambiguation, and one-handed reach have
@@ -245,8 +249,9 @@ Nothing below has been observed to work, and none of it is claimed:
    listening pass on device.
 4. Ad/IAP integration behind the `AdvertisingService` abstraction, with Google test ad units until
    the app is published.
-5. iOS: install the Hub `ios` module, produce the Xcode project, profile on device, then iterate on
-   HUD safe-area layout and touch feel.
+5. iOS: Xcode project generation is automated and `GameAssembly` compiles — remaining is signing
+   the `Unity-iPhone` app target with an Apple team, installing on device, then profiling and
+   iterating on HUD safe-area layout and touch feel.
 
 ## 6. Required external account configuration
 

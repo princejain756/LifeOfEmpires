@@ -15,26 +15,15 @@ Status of the iOS target for this build. Read this before attempting an App Stor
 Apple's October 2026 App Store rule requires submissions to be built with **Xcode 26 or newer and an
 iOS 26-or-newer SDK**. The installed Xcode 26.3 / iOS SDK 26.2 satisfies that requirement.
 
-## 2. Blocker: the iOS Build Support module is not installed
+## 2. iOS Build Support module: installed
 
-`/Applications/Unity/Hub/Editor/6000.6.5f1-arm64/PlaybackEngines/` contains only:
+`/Applications/Unity/Hub/Editor/6000.6.5f1-arm64/PlaybackEngines/iOSSupport` exists — installed
+via the Unity Hub headless CLI (`Unity Hub -- --headless install-modules --version 6000.6.5f1 -m ios`).
 
-```
-MacStandaloneSupport
-WebGLSupport
-```
-
-There is **no `iOSSupport` directory**, so Unity cannot produce an Xcode project on this machine.
-No device build was attempted and none is claimed.
-
-To unblock:
-
-1. Unity Hub → **Installs** → `6000.6.5f1` → **Add modules** → **iOS Build Support**.
-   The Hub advertises roughly **832 MB download / ~2.6 GB installed** for this module (plus the
-   Apple silicon IL2CPP toolchain it pulls in).
-2. Verify afterwards: `ls /Applications/Unity/Hub/Editor/6000.6.5f1-arm64/PlaybackEngines/iOSSupport`
-   must exist.
-3. Re-run the batch-mode compile to confirm nothing else is missing (see `README.md`).
+The Xcode project has been produced headlessly and the IL2CPP `GameAssembly` target **compiled
+successfully for arm64 / iPhoneOS 26.2 SDK** (582 build items, `libGameAssembly.a`, `xcodebuild`
+exit 0, `CODE_SIGNING_ALLOWED=NO`). What remains unverified: the `Unity-iPhone` app target link +
+signing (requires the developer's Apple team), on-device install, and on-device performance.
 
 ## 3. iOS settings already applied by the project
 
@@ -58,27 +47,24 @@ Notes for maintainers: in Unity 6 there is **no `PlayerSettings.iOSRequiresFullS
 `PlayerSettings.iOSStatusBarHidden`** — only the `PlayerSettings.iOS.*` forms above exist.
 Screen orientation ordinal `0` in `ProjectSettings.asset` is `UIOrientation.Portrait`.
 
-## 4. Producing the Xcode project (once the module is installed)
+## 4. Producing the Xcode project
 
-Interactive:
-
-```
-File > Build Settings > iOS > Switch Platform > Build
-```
-
-Headless (after the module is installed):
+Headless (verified working — `IOS_XCODE_OK` in the log, exit 0):
 
 ```bash
 U=/Applications/Unity/Hub/Editor/6000.6.5f1-arm64/Unity.app/Contents/MacOS/Unity
-gtimeout 1800 "$U" -projectPath "$PWD" -batchmode -quit -nographics \
-  -buildTarget iOS -executeMethod LifeOfEmpires.Editor.ProjectBootstrap.Run \
-  -logFile /tmp/er_ios_bootstrap.log
+gtimeout 3600 "$U" -projectPath "$PWD" -batchmode -quit -nographics \
+  -buildTarget iOS -executeMethod LifeOfEmpires.Editor.BuildIosXcodeProject.Run \
+  -logFile /tmp/loe_ios_build.log
 ```
 
-A dedicated `-executeMethod` iOS player build entry point is **not** part of this milestone; the
-Xcode project is produced from the Build Settings dialog. Then:
+This builds every scene in `EditorBuildSettings.scenes` into `Builds/iOS/` (git-ignored) and fails
+the batch run on any build error. Interactive alternative: File > Build Settings > iOS > Switch
+Platform > Build.
 
-1. Open `Build/iOS/Unity-iPhone.xcodeproj` in Xcode 26.3.
+Then, to reach a device:
+
+1. Open `Builds/iOS/Unity-iPhone.xcodeproj` in Xcode 26.3.
 2. Signing & Capabilities → set the Team; keep automatic signing.
 3. Select the `Unity-iPhone` scheme, a physical device, and Run to install.
 4. TestFlight: Product → Archive → Distribute App → App Store Connect.

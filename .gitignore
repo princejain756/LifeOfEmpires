@@ -37,3 +37,6 @@ sysinfo.txt
 
 # Pipeline artifacts
 .pi/
+
+# Build output directories
+Builds/
