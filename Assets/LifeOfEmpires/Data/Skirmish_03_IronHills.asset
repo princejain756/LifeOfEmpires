@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fea547438fd534b348727c279dc9d6f5, type: 3}
+  m_Name: Skirmish_03_IronHills
+  m_EditorClassIdentifier: LifeOfEmpires.Runtime::LifeOfEmpires.MissionDefinition
+  missionId: skirmish_03
+  title: 'Skirmish: Iron Hills'
+  briefing: A quick-play battle in the Iron Hills highlands. Skirmishes never count against the campaign.
+  terrainSeed: 20261103
+  startingWood: 300
+  startingFood: 250
+  startingGold: 100
+  enemyUnitIds:
+  - spearman
+  - spearman
+  - archer
+  - archer
+  - swordsman
+  enemyStartDelaySeconds: 14
+  difficulty: {fileID: 11400000, guid: fe00a7b1c5152421792c418d9808e389, type: 2}
+  victoryCondition: 1
+  defeatCondition: 3
+  starObjectives:
+  - description: Destroy the enemy town hall
+    condition: 1
+    threshold: 1
+    resource: 0
+    crownValue: 1
+  - description: Train 14 units
+    condition: 5
+    threshold: 14
+    resource: 0
+    crownValue: 1
+  isSkirmish: 1
+  crownReward: 3
+  unlockRequirement: 

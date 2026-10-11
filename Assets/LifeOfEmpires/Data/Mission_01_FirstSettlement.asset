@@ -43,5 +43,6 @@ MonoBehaviour:
     threshold: 250
     resource: 2
     crownValue: 1
+  isSkirmish: 0
   crownReward: 2
   unlockRequirement: 

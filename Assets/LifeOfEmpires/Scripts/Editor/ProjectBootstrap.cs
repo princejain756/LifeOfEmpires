@@ -34,6 +34,9 @@ namespace LifeOfEmpires.Editor
         private const string DatabasePath = DataFolder + "/GameDatabase.asset";
         private const string BattleScenePath = ScenesFolder + "/Battle.unity";
         private const string BootstrapScenePath = ScenesFolder + "/Bootstrap.unity";
+        private const string CampaignMapScenePath = ScenesFolder + "/CampaignMap.unity";
+        private const string SkirmishScenePath = ScenesFolder + "/Skirmish.unity";
+        private const string KingdomScenePath = ScenesFolder + "/Kingdom.unity";
         private const string MobileQualityName = "Mobile";
 
         /// <summary>Spec palette: the battlefield ground colour.</summary>
@@ -512,15 +515,388 @@ namespace LifeOfEmpires.Editor
                 };
             });
 
+            MissionDefinition mission03 = CreateOrLoad<MissionDefinition>("Mission_03_Raiders", mission =>
+            {
+                mission.missionId = "mission_03";
+                mission.title = "Greenwood Valley: Raiders";
+                mission.briefing = "The Greenwood Valley raiders have returned. Train a handful of soldiers and take their camp.";
+                mission.terrainSeed = 20261013;
+                mission.startingWood = 250;
+                mission.startingFood = 180;
+                mission.startingGold = 60;
+                mission.enemyUnitIds = new[] { "worker", "swordsman", "spearman" };
+                mission.enemyStartDelaySeconds = 18f;
+                mission.difficulty = normal;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 3;
+                mission.unlockRequirement = "mission_02";
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Train 10 units", condition = ObjectiveCondition.TrainUnits, threshold = 10, crownValue = 1 },
+                    new StarObjective { description = "Stockpile 200 gold", condition = ObjectiveCondition.StockpileResource, threshold = 200, resource = ResourceType.Gold, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition mission04 = CreateOrLoad<MissionDefinition>("Mission_04_StonebridgeWatch", mission =>
+            {
+                mission.missionId = "mission_04";
+                mission.title = "Stonebridge: The Watch";
+                mission.briefing = "Stonebridge is watched from a guard post. Break the watch and hold the crossing.";
+                mission.terrainSeed = 20261014;
+                mission.startingWood = 260;
+                mission.startingFood = 190;
+                mission.startingGold = 70;
+                mission.enemyUnitIds = new[] { "worker", "worker", "swordsman", "spearman", "archer" };
+                mission.enemyStartDelaySeconds = 16f;
+                mission.difficulty = normal;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 3;
+                mission.unlockRequirement = "mission_03";
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Destroy 2 enemy structures", condition = ObjectiveCondition.DestroyEnemyBuildings, threshold = 2, crownValue = 1 },
+                    new StarObjective { description = "Stockpile 250 gold", condition = ObjectiveCondition.StockpileResource, threshold = 250, resource = ResourceType.Gold, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition mission05 = CreateOrLoad<MissionDefinition>("Mission_05_FirstRecruits", mission =>
+            {
+                mission.missionId = "mission_05";
+                mission.title = "Stonebridge: First Recruits";
+                mission.briefing = "Stonebridge is yours, but the recruit line is thin. Raise a bigger army before you push on.";
+                mission.terrainSeed = 20261015;
+                mission.startingWood = 280;
+                mission.startingFood = 200;
+                mission.startingGold = 70;
+                mission.enemyUnitIds = new[] { "worker", "worker", "swordsman", "spearman", "archer", "archer" };
+                mission.enemyStartDelaySeconds = 15f;
+                mission.difficulty = normal;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 4;
+                mission.unlockRequirement = "mission_04";
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Train 14 units", condition = ObjectiveCondition.TrainUnits, threshold = 14, crownValue = 1 },
+                    new StarObjective { description = "Stockpile 300 gold", condition = ObjectiveCondition.StockpileResource, threshold = 300, resource = ResourceType.Gold, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition mission06 = CreateOrLoad<MissionDefinition>("Mission_06_IronHillsGarrison", mission =>
+            {
+                mission.missionId = "mission_06";
+                mission.title = "The Iron Hills: Garrison";
+                mission.briefing = "The Iron Hills are held by a garrison in depth. Bring ranged support to crack it.";
+                mission.terrainSeed = 20261016;
+                mission.startingWood = 290;
+                mission.startingFood = 210;
+                mission.startingGold = 80;
+                mission.enemyUnitIds = new[] { "worker", "worker", "spearman", "spearman", "archer" };
+                mission.enemyStartDelaySeconds = 14f;
+                mission.difficulty = hard;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 4;
+                mission.unlockRequirement = "mission_05";
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Destroy 3 enemy structures", condition = ObjectiveCondition.DestroyEnemyBuildings, threshold = 3, crownValue = 1 },
+                    new StarObjective { description = "Stockpile 350 gold", condition = ObjectiveCondition.StockpileResource, threshold = 350, resource = ResourceType.Gold, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition mission07 = CreateOrLoad<MissionDefinition>("Mission_07_RangedSkirmish", mission =>
+            {
+                mission.missionId = "mission_07";
+                mission.title = "The Iron Hills: Ranged Skirmish";
+                mission.briefing = "Enemy archers rule the Iron Hills ridgeline. Answer them at range.";
+                mission.terrainSeed = 20261017;
+                mission.startingWood = 300;
+                mission.startingFood = 220;
+                mission.startingGold = 80;
+                mission.enemyUnitIds = new[] { "worker", "worker", "swordsman", "spearman", "archer", "archer" };
+                mission.enemyStartDelaySeconds = 12f;
+                mission.difficulty = hard;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 5;
+                mission.unlockRequirement = "mission_06";
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Train 16 units", condition = ObjectiveCondition.TrainUnits, threshold = 16, crownValue = 1 },
+                    new StarObjective { description = "Destroy 2 enemy structures", condition = ObjectiveCondition.DestroyEnemyBuildings, threshold = 2, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition mission08 = CreateOrLoad<MissionDefinition>("Mission_08_SunfallOutpost", mission =>
+            {
+                mission.missionId = "mission_08";
+                mission.title = "Sunfall Plains: Outpost";
+                mission.briefing = "The Sunfall Plains outpost is fortified. Take it before it calls for help.";
+                mission.terrainSeed = 20261018;
+                mission.startingWood = 310;
+                mission.startingFood = 230;
+                mission.startingGold = 90;
+                mission.enemyUnitIds = new[] { "worker", "swordsman", "spearman", "spearman", "archer", "archer" };
+                mission.enemyStartDelaySeconds = 12f;
+                mission.difficulty = hard;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 5;
+                mission.unlockRequirement = "mission_07";
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Train 18 units", condition = ObjectiveCondition.TrainUnits, threshold = 18, crownValue = 1 },
+                    new StarObjective { description = "Stockpile 400 gold", condition = ObjectiveCondition.StockpileResource, threshold = 400, resource = ResourceType.Gold, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition mission09 = CreateOrLoad<MissionDefinition>("Mission_09_SunfallSiege", mission =>
+            {
+                mission.missionId = "mission_09";
+                mission.title = "Sunfall Plains: The Siege";
+                mission.briefing = "The Sunfall siege begins. Your archers and spears must break a defended town.";
+                mission.terrainSeed = 20261019;
+                mission.startingWood = 330;
+                mission.startingFood = 240;
+                mission.startingGold = 100;
+                mission.enemyUnitIds = new[] { "worker", "worker", "spearman", "spearman", "archer", "archer", "archer" };
+                mission.enemyStartDelaySeconds = 10f;
+                mission.difficulty = hard;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 6;
+                mission.unlockRequirement = "mission_08";
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Destroy 4 enemy structures", condition = ObjectiveCondition.DestroyEnemyBuildings, threshold = 4, crownValue = 1 },
+                    new StarObjective { description = "Stockpile 500 gold", condition = ObjectiveCondition.StockpileResource, threshold = 500, resource = ResourceType.Gold, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition mission10 = CreateOrLoad<MissionDefinition>("Mission_10_AshenFortress", mission =>
+            {
+                mission.missionId = "mission_10";
+                mission.title = "Ashen Frontier: The Fortress";
+                mission.briefing = "The Ashen Frontier fortress bristles with archers. Bring siege numbers or go home.";
+                mission.terrainSeed = 20261020;
+                mission.startingWood = 340;
+                mission.startingFood = 250;
+                mission.startingGold = 110;
+                mission.enemyUnitIds = new[] { "spearman", "spearman", "swordsman", "archer", "archer", "archer" };
+                mission.enemyStartDelaySeconds = 10f;
+                mission.difficulty = hard;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 7;
+                mission.unlockRequirement = "mission_09";
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Train 20 units", condition = ObjectiveCondition.TrainUnits, threshold = 20, crownValue = 1 },
+                    new StarObjective { description = "Stockpile 550 gold", condition = ObjectiveCondition.StockpileResource, threshold = 550, resource = ResourceType.Gold, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition mission11 = CreateOrLoad<MissionDefinition>("Mission_11_CrownlandsGate", mission =>
+            {
+                mission.missionId = "mission_11";
+                mission.title = "The Crownlands: The Gate";
+                mission.briefing = "The Crownlands' gate is the last wall between you and the capital. Storm it.";
+                mission.terrainSeed = 20261021;
+                mission.startingWood = 360;
+                mission.startingFood = 260;
+                mission.startingGold = 120;
+                mission.enemyUnitIds = new[] { "spearman", "swordsman", "spearman", "archer", "archer", "archer", "archer" };
+                mission.enemyStartDelaySeconds = 8f;
+                mission.difficulty = hard;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 8;
+                mission.unlockRequirement = "mission_10";
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Destroy 5 enemy structures", condition = ObjectiveCondition.DestroyEnemyBuildings, threshold = 5, crownValue = 1 },
+                    new StarObjective { description = "Stockpile 600 gold", condition = ObjectiveCondition.StockpileResource, threshold = 600, resource = ResourceType.Gold, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition mission12 = CreateOrLoad<MissionDefinition>("Mission_12_CapitalOfCrownlands", mission =>
+            {
+                mission.missionId = "mission_12";
+                mission.title = "The Crownlands: Capital";
+                mission.briefing = "The Crownlands' capital stands between you and a unified continent. End it.";
+                mission.terrainSeed = 20261022;
+                mission.startingWood = 400;
+                mission.startingFood = 300;
+                mission.startingGold = 150;
+                mission.enemyUnitIds = new[] { "swordsman", "spearman", "spearman", "archer", "archer", "swordsman", "swordsman" };
+                mission.enemyStartDelaySeconds = 8f;
+                mission.difficulty = hard;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 10;
+                mission.unlockRequirement = "mission_11";
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Destroy 6 enemy structures", condition = ObjectiveCondition.DestroyEnemyBuildings, threshold = 6, crownValue = 1 },
+                    new StarObjective { description = "Stockpile 700 gold", condition = ObjectiveCondition.StockpileResource, threshold = 700, resource = ResourceType.Gold, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition skirmishForest = CreateOrLoad<MissionDefinition>("Skirmish_01_Greenwood", mission =>
+            {
+                mission.missionId = "skirmish_01";
+                mission.title = "Skirmish: Greenwood";
+                mission.briefing = "A quick-play battle on the Greenwood forest map. Skirmishes never count against the campaign.";
+                mission.terrainSeed = 20261101;
+                mission.startingWood = 300;
+                mission.startingFood = 250;
+                mission.startingGold = 100;
+                mission.enemyUnitIds = new[] { "worker", "swordsman", "spearman" };
+                mission.enemyStartDelaySeconds = 18f;
+                mission.difficulty = easy;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 1;
+                mission.isSkirmish = true;
+                mission.unlockRequirement = string.Empty;
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Train 10 units", condition = ObjectiveCondition.TrainUnits, threshold = 10, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition skirmishPlains = CreateOrLoad<MissionDefinition>("Skirmish_02_Stonebridge", mission =>
+            {
+                mission.missionId = "skirmish_02";
+                mission.title = "Skirmish: Stonebridge";
+                mission.briefing = "A quick-play battle across the Stonebridge plains. Skirmishes never count against the campaign.";
+                mission.terrainSeed = 20261102;
+                mission.startingWood = 300;
+                mission.startingFood = 250;
+                mission.startingGold = 100;
+                mission.enemyUnitIds = new[] { "worker", "swordsman", "spearman", "archer" };
+                mission.enemyStartDelaySeconds = 16f;
+                mission.difficulty = normal;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 2;
+                mission.isSkirmish = true;
+                mission.unlockRequirement = string.Empty;
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Train 12 units", condition = ObjectiveCondition.TrainUnits, threshold = 12, crownValue = 1 }
+                };
+            });
+
+            MissionDefinition skirmishHighlands = CreateOrLoad<MissionDefinition>("Skirmish_03_IronHills", mission =>
+            {
+                mission.missionId = "skirmish_03";
+                mission.title = "Skirmish: Iron Hills";
+                mission.briefing = "A quick-play battle in the Iron Hills highlands. Skirmishes never count against the campaign.";
+                mission.terrainSeed = 20261103;
+                mission.startingWood = 300;
+                mission.startingFood = 250;
+                mission.startingGold = 100;
+                mission.enemyUnitIds = new[] { "spearman", "spearman", "archer", "archer", "swordsman" };
+                mission.enemyStartDelaySeconds = 14f;
+                mission.difficulty = hard;
+                mission.victoryCondition = ObjectiveCondition.DestroyEnemyTownHall;
+                mission.defeatCondition = ObjectiveCondition.LosePlayerTownHall;
+                mission.crownReward = 3;
+                mission.isSkirmish = true;
+                mission.unlockRequirement = string.Empty;
+                mission.starObjectives = new[]
+                {
+                    new StarObjective { description = "Destroy the enemy town hall", condition = ObjectiveCondition.DestroyEnemyTownHall, threshold = 1, crownValue = 1 },
+                    new StarObjective { description = "Train 14 units", condition = ObjectiveCondition.TrainUnits, threshold = 14, crownValue = 1 }
+                };
+            });
+
+            KingdomUpgradeDefinition upgradeVillage = CreateOrLoad<KingdomUpgradeDefinition>("Upgrade_Village", upgrade =>
+            {
+                upgrade.upgradeId = "upg_village";
+                upgrade.title = "Growing Village";
+                upgrade.crownCost = 8;
+                upgrade.bonusStartingWorkers = 0;
+                upgrade.startingResourceBonus = 0f;
+                upgrade.kingdomStage = 1;
+                upgrade.description = "The settlement grows into a village.";
+            });
+
+            KingdomUpgradeDefinition upgradeFortified = CreateOrLoad<KingdomUpgradeDefinition>("Upgrade_Fortified", upgrade =>
+            {
+                upgrade.upgradeId = "upg_fortified";
+                upgrade.title = "Fortified Town";
+                upgrade.crownCost = 14;
+                upgrade.bonusStartingWorkers = 0;
+                upgrade.startingResourceBonus = 0.05f;
+                upgrade.kingdomStage = 2;
+                upgrade.description = "Stockades and storehouses add 5% to every opening stockpile.";
+            });
+
+            KingdomUpgradeDefinition upgradeCastle = CreateOrLoad<KingdomUpgradeDefinition>("Upgrade_Castle", upgrade =>
+            {
+                upgrade.upgradeId = "upg_castle";
+                upgrade.title = "Stone Castle";
+                upgrade.crownCost = 22;
+                upgrade.bonusStartingWorkers = 0;
+                upgrade.startingResourceBonus = 0.10f;
+                upgrade.kingdomStage = 3;
+                upgrade.description = "Stone walls and full granaries add 10% to every opening stockpile.";
+            });
+
+            KingdomUpgradeDefinition upgradeStronghold = CreateOrLoad<KingdomUpgradeDefinition>("Upgrade_Stronghold", upgrade =>
+            {
+                upgrade.upgradeId = "upg_stronghold";
+                upgrade.title = "Royal Stronghold";
+                upgrade.crownCost = 35;
+                upgrade.bonusStartingWorkers = 0;
+                upgrade.startingResourceBonus = 0.15f;
+                upgrade.kingdomStage = 4;
+                upgrade.description = "A royal stronghold adds 15% to every opening stockpile.";
+            });
+
+            KingdomUpgradeDefinition upgradeVanguard = CreateOrLoad<KingdomUpgradeDefinition>("Upgrade_Vanguard", upgrade =>
+            {
+                upgrade.upgradeId = "upg_vanguard";
+                upgrade.title = "Vanguard Doctrine";
+                upgrade.crownCost = 18;
+                upgrade.bonusStartingWorkers = 1;
+                upgrade.startingResourceBonus = 0f;
+                upgrade.kingdomStage = 1;
+                upgrade.description = "Field one extra worker in every battle.";
+            });
+
             database.units = new List<UnitDefinition> { worker, swordsman, spearman, archer };
             database.buildings = new List<BuildingDefinition> { townHall, barracks, watchtower };
-            database.missions = new List<MissionDefinition> { mission01, mission02 };
+            database.missions = new List<MissionDefinition>
+            {
+                mission01, mission02, mission03, mission04, mission05, mission06,
+                mission07, mission08, mission09, mission10, mission11, mission12
+            };
+            database.skirmishes = new List<MissionDefinition> { skirmishForest, skirmishPlains, skirmishHighlands };
+            database.upgrades = new List<KingdomUpgradeDefinition> { upgradeVillage, upgradeFortified, upgradeCastle, upgradeStronghold, upgradeVanguard };
             database.InvalidateCaches();
 
             EditorUtility.SetDirty(database);
             AssetDatabase.SaveAssets();
 
-            Debug.Log($"ProjectBootstrap: content assets ready — {database.units.Count} units, {database.buildings.Count} buildings, {database.missions.Count} missions, difficulty profiles easy/normal/hard.");
+            Debug.Log($"ProjectBootstrap: content assets ready — {database.units.Count} units, {database.buildings.Count} buildings, {database.missions.Count} missions, {database.skirmishes.Count} skirmishes, {database.upgrades.Count} upgrades, difficulty profiles easy/normal/hard.");
             return database;
         }
 
@@ -549,6 +925,18 @@ namespace LifeOfEmpires.Editor
         {
             BuildBattleScene(database);
             BuildBootstrapScene(database);
+            BuildMenuScenes(database);
+        }
+
+        /// <summary>
+        /// Build the three metagame screens. Bootstrap is built first by <see cref="BuildScenes"/> so a
+        /// screen that loads it always has it in the build.
+        /// </summary>
+        private static void BuildMenuScenes(GameDatabase database)
+        {
+            BuildCampaignMapScene(database);
+            BuildSkirmishScene(database);
+            BuildKingdomScene(database);
         }
 
         /// <summary>
@@ -735,12 +1123,81 @@ namespace LifeOfEmpires.Editor
             Debug.Log($"ProjectBootstrap: bootstrap scene built at '{BootstrapScenePath}'.");
         }
 
+        private static void BuildCampaignMapScene(GameDatabase database)
+        {
+            UnityEngine.SceneManagement.Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            // Same reload rule as the battle scene: the instance passed in did not survive the swap.
+            GameDatabase liveDatabase = ReloadDatabase() ?? database;
+
+            var go = new GameObject("CampaignMapScreen");
+            CampaignMapScreen screen = go.AddComponent<CampaignMapScreen>();
+            screen.database = liveDatabase;
+            screen.Build(liveDatabase);
+            BattleHud.EnsureEventSystem();
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene, CampaignMapScenePath))
+            {
+                throw new InvalidOperationException($"Failed to save the campaign map scene to '{CampaignMapScenePath}'.");
+            }
+
+            Debug.Log($"ProjectBootstrap: campaign map scene built at '{CampaignMapScenePath}'.");
+        }
+
+        private static void BuildSkirmishScene(GameDatabase database)
+        {
+            UnityEngine.SceneManagement.Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            // Same reload rule as the battle scene: the instance passed in did not survive the swap.
+            GameDatabase liveDatabase = ReloadDatabase() ?? database;
+
+            var go = new GameObject("SkirmishScreen");
+            SkirmishScreen screen = go.AddComponent<SkirmishScreen>();
+            screen.database = liveDatabase;
+            screen.Build(liveDatabase);
+            BattleHud.EnsureEventSystem();
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene, SkirmishScenePath))
+            {
+                throw new InvalidOperationException($"Failed to save the skirmish scene to '{SkirmishScenePath}'.");
+            }
+
+            Debug.Log($"ProjectBootstrap: skirmish scene built at '{SkirmishScenePath}'.");
+        }
+
+        private static void BuildKingdomScene(GameDatabase database)
+        {
+            UnityEngine.SceneManagement.Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            // Same reload rule as the battle scene: the instance passed in did not survive the swap.
+            GameDatabase liveDatabase = ReloadDatabase() ?? database;
+
+            var go = new GameObject("KingdomScreen");
+            KingdomScreen screen = go.AddComponent<KingdomScreen>();
+            screen.database = liveDatabase;
+            screen.Build(liveDatabase);
+            BattleHud.EnsureEventSystem();
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene, KingdomScenePath))
+            {
+                throw new InvalidOperationException($"Failed to save the kingdom scene to '{KingdomScenePath}'.");
+            }
+
+            Debug.Log($"ProjectBootstrap: kingdom scene built at '{KingdomScenePath}'.");
+        }
+
         private static void ConfigureBuildSettings()
         {
             EditorBuildSettings.scenes = new[]
             {
                 new EditorBuildSettingsScene(BootstrapScenePath, true),
-                new EditorBuildSettingsScene(BattleScenePath, true)
+                new EditorBuildSettingsScene(BattleScenePath, true),
+                new EditorBuildSettingsScene(CampaignMapScenePath, true),
+                new EditorBuildSettingsScene(SkirmishScenePath, true),
+                new EditorBuildSettingsScene(KingdomScenePath, true)
             };
 
             Debug.Log($"ProjectBootstrap: build settings hold {EditorBuildSettings.scenes.Length} scenes (Bootstrap first).");

@@ -34,7 +34,19 @@ namespace LifeOfEmpires
     public class SaveData
     {
         /// <summary>Bumped whenever the shape below changes; used to migrate rather than discard.</summary>
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
+
+        /// <summary>
+        /// Bring a payload written by an older build up to the current shape. Version 1 had no kingdom
+        /// upgrades and no skirmish preferences; every added field is additive, so nothing is lost and
+        /// nothing has to be discarded.
+        /// </summary>
+        public static void MigrateInPlace(SaveData data)
+        {
+            if (data == null) return;
+            data.ownedUpgrades ??= new List<string>();
+            if (data.saveVersion < 2) data.saveVersion = 2;
+        }
 
         /// <summary>
         /// Marker proving the payload came from <see cref="SaveSystem.Serialize"/>. Its presence in
@@ -57,6 +69,17 @@ namespace LifeOfEmpires
 
         /// <summary>Product ids the player has bought. Entitlement grants are derived from these.</summary>
         public List<string> purchasedProducts = new List<string>();
+
+        /// <summary>Ids of kingdom upgrades the player has bought. Crowns are spent once, at purchase.</summary>
+        public List<string> ownedUpgrades = new List<string>();
+
+        /// <summary>Last skirmish configuration, so quick play survives a restart (spec §12).</summary>
+        public string skirmishMap = "";
+        public string skirmishDifficulty = "";
+        public int skirmishSeed;
+
+        /// <summary>Skirmish wins recorded, used to gate the skirmish crown reward (spec §12).</summary>
+        public int skirmishWins;
 
         public MissionRecord? FindMission(string missionId)
         {
@@ -113,6 +136,45 @@ namespace LifeOfEmpires
             entitlements.Add(entitlementId);
             return true;
         }
+
+        public bool HasUpgrade(string upgradeId)
+        {
+            if (string.IsNullOrEmpty(upgradeId) || ownedUpgrades == null) return false;
+            for (int i = 0; i < ownedUpgrades.Count; i++)
+            {
+                if (ownedUpgrades[i] == upgradeId) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Spend crowns on an upgrade. Returns false and changes nothing when it is already
+        /// owned — upgrades are permanent, so a double tap can never double-charge.</summary>
+        public bool PurchaseUpgrade(KingdomUpgradeDefinition upgrade)
+        {
+            if (upgrade == null) return false;
+            if (HasUpgrade(upgrade.upgradeId)) return false;
+            if (crowns < upgrade.crownCost) return false;
+            if (ownedUpgrades == null) ownedUpgrades = new List<string>();
+            crowns -= upgrade.crownCost;
+            ownedUpgrades.Add(upgrade.upgradeId);
+            return true;
+        }
+
+        /// <summary>High-water stage across every owned upgrade, clamped to the authored 0..4 range.</summary>
+        public int KingdomStage(IReadOnlyList<KingdomUpgradeDefinition> catalogue)
+        {
+            if (catalogue == null) return 0;
+            int stage = 0;
+            for (int i = 0; i < catalogue.Count; i++)
+            {
+                KingdomUpgradeDefinition upgrade = catalogue[i];
+                if (upgrade == null || !HasUpgrade(upgrade.upgradeId)) continue;
+                if (upgrade.kingdomStage > stage) stage = upgrade.kingdomStage;
+            }
+
+            return Mathf.Clamp(stage, 0, 4);
+        }
     }
 
     /// <summary>
@@ -128,6 +190,19 @@ namespace LifeOfEmpires
         public const string Magic = "LifeOfEmpiresSave";
 
         public static string DefaultPath => Path.Combine(Application.persistentDataPath, FileName);
+
+        /// <summary>
+        /// Optional path override used by tests to redirect every implicit read and write to a
+        /// scratch file. Null in a shipped build, so the real save path is the default; the tests set
+        /// it and clear it again so no test can ever leave a real save file behind.
+        /// </summary>
+        public static string OverridePath { get; set; }
+
+        private static string ResolvePath(string path)
+        {
+            if (!string.IsNullOrEmpty(path)) return path;
+            return string.IsNullOrEmpty(OverridePath) ? DefaultPath : OverridePath;
+        }
 
         public static string Serialize(SaveData data)
         {
@@ -159,6 +234,9 @@ namespace LifeOfEmpires
                 parsed.entitlements ??= new List<string>();
                 parsed.purchasedProducts ??= new List<string>();
 
+                parsed.ownedUpgrades ??= new List<string>();
+                SaveData.MigrateInPlace(parsed);
+
                 data = parsed;
                 return true;
             }
@@ -177,7 +255,7 @@ namespace LifeOfEmpires
 
         public static void WriteToDisk(SaveData data, string path = null)
         {
-            string target = string.IsNullOrEmpty(path) ? DefaultPath : path;
+            string target = ResolvePath(path);
             string directory = Path.GetDirectoryName(target);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) Directory.CreateDirectory(directory);
             File.WriteAllText(target, Serialize(data));
@@ -185,7 +263,7 @@ namespace LifeOfEmpires
 
         public static SaveData ReadFromDisk(string path = null)
         {
-            string target = string.IsNullOrEmpty(path) ? DefaultPath : path;
+            string target = ResolvePath(path);
             try
             {
                 if (!File.Exists(target)) return new SaveData();
@@ -200,7 +278,7 @@ namespace LifeOfEmpires
 
         public static void DeleteOnDisk(string path = null)
         {
-            string target = string.IsNullOrEmpty(path) ? DefaultPath : path;
+            string target = ResolvePath(path);
             if (File.Exists(target)) File.Delete(target);
         }
     }

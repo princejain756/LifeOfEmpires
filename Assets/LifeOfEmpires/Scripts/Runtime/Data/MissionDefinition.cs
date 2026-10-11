@@ -91,6 +91,9 @@ namespace LifeOfEmpires
         public StarObjective[] starObjectives = new StarObjective[0];
 
         [Header("Rewards and progression")]
+        [Tooltip("True for a quick-play skirmish. Skirmishes ignore unlockRequirement entirely and pay a flat crown reward, so they cannot be farmed for campaign progress.")]
+        public bool isSkirmish;
+
         [Min(0)] public int crownReward = 1;
 
         [Tooltip("Mission id that must be completed before this one unlocks. Empty means always unlocked.")]

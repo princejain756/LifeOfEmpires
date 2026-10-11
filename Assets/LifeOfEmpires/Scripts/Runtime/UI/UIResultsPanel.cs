@@ -181,16 +181,16 @@ namespace LifeOfEmpires.UI
             if (label != null) label.text = $"Next: {next.title}";
         }
 
-        /// <summary>Leave the battle scene.</summary>
+        /// <summary>Leave the battle scene and land on the campaign map.</summary>
         public void ReturnToBootstrap()
         {
             if (_battle != null)
             {
-                _battle.ReturnToBootstrap();
+                _battle.ReturnToCampaignMap();
                 return;
             }
 
-            UnityEngine.SceneManagement.SceneManager.LoadScene("Bootstrap");
+            UnityEngine.SceneManagement.SceneManager.LoadScene("CampaignMap");
         }
 
         /// <summary>

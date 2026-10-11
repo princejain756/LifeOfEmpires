@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fea547438fd534b348727c279dc9d6f5, type: 3}
+  m_Name: Mission_05_FirstRecruits
+  m_EditorClassIdentifier: LifeOfEmpires.Runtime::LifeOfEmpires.MissionDefinition
+  missionId: mission_05
+  title: 'Stonebridge: First Recruits'
+  briefing: Stonebridge is yours, but the recruit line is thin. Raise a bigger army before you push on.
+  terrainSeed: 20261015
+  startingWood: 280
+  startingFood: 200
+  startingGold: 70
+  enemyUnitIds:
+  - worker
+  - worker
+  - swordsman
+  - spearman
+  - archer
+  - archer
+  enemyStartDelaySeconds: 15
+  difficulty: {fileID: 11400000, guid: ae54bbe9e89524f669acacfa5d451f6d, type: 2}
+  victoryCondition: 1
+  defeatCondition: 3
+  starObjectives:
+  - description: Destroy the enemy town hall
+    condition: 1
+    threshold: 1
+    resource: 0
+    crownValue: 1
+  - description: Train 14 units
+    condition: 5
+    threshold: 14
+    resource: 0
+    crownValue: 1
+  - description: Stockpile 300 gold
+    condition: 6
+    threshold: 300
+    resource: 2
+    crownValue: 1
+  isSkirmish: 0
+  crownReward: 4
+  unlockRequirement: mission_04

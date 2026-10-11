@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fea547438fd534b348727c279dc9d6f5, type: 3}
+  m_Name: Mission_11_CrownlandsGate
+  m_EditorClassIdentifier: LifeOfEmpires.Runtime::LifeOfEmpires.MissionDefinition
+  missionId: mission_11
+  title: 'The Crownlands: The Gate'
+  briefing: The Crownlands' gate is the last wall between you and the capital. Storm it.
+  terrainSeed: 20261021
+  startingWood: 360
+  startingFood: 260
+  startingGold: 120
+  enemyUnitIds:
+  - spearman
+  - swordsman
+  - spearman
+  - archer
+  - archer
+  - archer
+  - archer
+  enemyStartDelaySeconds: 8
+  difficulty: {fileID: 11400000, guid: fe00a7b1c5152421792c418d9808e389, type: 2}
+  victoryCondition: 1
+  defeatCondition: 3
+  starObjectives:
+  - description: Destroy the enemy town hall
+    condition: 1
+    threshold: 1
+    resource: 0
+    crownValue: 1
+  - description: Destroy 5 enemy structures
+    condition: 2
+    threshold: 5
+    resource: 0
+    crownValue: 1
+  - description: Stockpile 600 gold
+    condition: 6
+    threshold: 600
+    resource: 2
+    crownValue: 1
+  isSkirmish: 0
+  crownReward: 8
+  unlockRequirement: mission_10

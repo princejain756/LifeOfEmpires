@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fea547438fd534b348727c279dc9d6f5, type: 3}
+  m_Name: Mission_10_AshenFortress
+  m_EditorClassIdentifier: LifeOfEmpires.Runtime::LifeOfEmpires.MissionDefinition
+  missionId: mission_10
+  title: 'Ashen Frontier: The Fortress'
+  briefing: The Ashen Frontier fortress bristles with archers. Bring siege numbers or go home.
+  terrainSeed: 20261020
+  startingWood: 340
+  startingFood: 250
+  startingGold: 110
+  enemyUnitIds:
+  - spearman
+  - spearman
+  - swordsman
+  - archer
+  - archer
+  - archer
+  enemyStartDelaySeconds: 10
+  difficulty: {fileID: 11400000, guid: fe00a7b1c5152421792c418d9808e389, type: 2}
+  victoryCondition: 1
+  defeatCondition: 3
+  starObjectives:
+  - description: Destroy the enemy town hall
+    condition: 1
+    threshold: 1
+    resource: 0
+    crownValue: 1
+  - description: Train 20 units
+    condition: 5
+    threshold: 20
+    resource: 0
+    crownValue: 1
+  - description: Stockpile 550 gold
+    condition: 6
+    threshold: 550
+    resource: 2
+    crownValue: 1
+  isSkirmish: 0
+  crownReward: 7
+  unlockRequirement: mission_09

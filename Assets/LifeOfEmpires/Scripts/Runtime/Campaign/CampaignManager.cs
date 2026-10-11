@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LifeOfEmpires
@@ -89,6 +91,17 @@ namespace LifeOfEmpires
                 return IsUnlocked(progress, database, mission) ? mission : null;
             }
 
+            // A skirmish is always playable: quick play must never be gated behind campaign progress.
+            if (database.skirmishes != null)
+            {
+                for (int i = 0; i < database.skirmishes.Count; i++)
+                {
+                    MissionDefinition skirmish = database.skirmishes[i];
+                    if (skirmish == null || skirmish.missionId != PendingMissionId) continue;
+                    return skirmish;
+                }
+            }
+
             return null;
         }
 
@@ -101,6 +114,96 @@ namespace LifeOfEmpires
             if (!record.HasValue || !record.Value.completed) return "Not yet conquered";
 
             return $"{record.Value.stars}/{mission.ConfiguredStarCount}";
+        }
+
+        /// <summary>Names of the six campaign territories from spec §11, in conquest order.</summary>
+        public static readonly string[] TerritoryOrder =
+        {
+            "Greenwood Valley", "Stonebridge", "The Iron Hills",
+            "Sunfall Plains", "Ashen Frontier", "The Crownlands"
+        };
+
+        /// <summary>
+        /// A mission's territory, taken from the territory block its title opens with, so the campaign
+        /// map can group missions into conquered kingdoms without a second field that could disagree
+        /// with the title. A title with no known territory prefix falls back to the mission's own id so
+        /// a mission is never hidden from the map.
+        /// </summary>
+        public static string TerritoryOf(MissionDefinition mission)
+        {
+            if (mission == null) return string.Empty;
+            for (int i = 0; i < TerritoryOrder.Length; i++)
+            {
+                if (!string.IsNullOrEmpty(mission.title) && mission.title.StartsWith(TerritoryOrder[i], StringComparison.OrdinalIgnoreCase))
+                {
+                    return TerritoryOrder[i];
+                }
+            }
+
+            return string.IsNullOrEmpty(mission.missionId) ? string.Empty : mission.missionId;
+        }
+
+        /// <summary>Every mission authored for one territory, in database order.</summary>
+        public static List<MissionDefinition> MissionsInTerritory(GameDatabase database, string territory)
+        {
+            var result = new List<MissionDefinition>();
+            if (database == null || database.missions == null || string.IsNullOrEmpty(territory)) return result;
+
+            for (int i = 0; i < database.missions.Count; i++)
+            {
+                MissionDefinition mission = database.missions[i];
+                if (mission == null) continue;
+                if (string.Equals(TerritoryOf(mission), territory, StringComparison.OrdinalIgnoreCase)) result.Add(mission);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Stars recorded against one territory, and whether the whole territory is conquered. Replayed
+        /// missions keep their best star count, so the total only ever rises.
+        /// </summary>
+        public static (int Stars, int ConfiguredStars, bool Conquered) TerritoryProgress(
+            GameDatabase database, SaveData save, string territory)
+        {
+            int stars = 0;
+            int configured = 0;
+            bool allComplete = true;
+
+            List<MissionDefinition> missions = MissionsInTerritory(database, territory);
+            for (int i = 0; i < missions.Count; i++)
+            {
+                MissionDefinition mission = missions[i];
+                configured += mission.ConfiguredStarCount;
+                MissionRecord? record = save != null ? save.FindMission(mission.missionId) : null;
+                if (!record.HasValue || !record.Value.completed)
+                {
+                    allComplete = false;
+                    continue;
+                }
+
+                stars += record.Value.stars;
+            }
+
+            return (stars, configured, missions.Count > 0 && allComplete);
+        }
+
+        /// <summary>
+        /// Whether the campaign is finished: every mission in the database is recorded complete. Used by
+        /// the campaign map to keep replaying reachable instead of dead-ending.
+        /// </summary>
+        public static bool IsCampaignComplete(GameDatabase database, SaveData save)
+        {
+            if (database == null || database.missions == null || database.missions.Count == 0) return false;
+            if (save == null) return false;
+
+            for (int i = 0; i < database.missions.Count; i++)
+            {
+                MissionDefinition mission = database.missions[i];
+                if (mission == null || !save.IsComplete(mission.missionId)) return false;
+            }
+
+            return true;
         }
 
         private static bool IsFirstMission(GameDatabase database, MissionDefinition mission)

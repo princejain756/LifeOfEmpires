@@ -18,6 +18,13 @@ namespace LifeOfEmpires
         public List<BuildingDefinition> buildings = new List<BuildingDefinition>();
         public List<MissionDefinition> missions = new List<MissionDefinition>();
 
+        [Header("Metagame")]
+        [Tooltip("Purchasable permanent upgrades, bought with crowns.")]
+        public List<KingdomUpgradeDefinition> upgrades = new List<KingdomUpgradeDefinition>();
+
+        /// <summary>Skirmish missions, kept apart from the campaign list so unlock rules never touch them.</summary>
+        public List<MissionDefinition> skirmishes = new List<MissionDefinition>();
+
         private Dictionary<string, UnitDefinition> _unitById;
         private Dictionary<string, BuildingDefinition> _buildingById;
 
@@ -34,6 +41,40 @@ namespace LifeOfEmpires
             if (string.IsNullOrEmpty(id)) return null;
             EnsureBuildingIndex();
             return _buildingById.TryGetValue(id, out BuildingDefinition def) ? def : null;
+        }
+
+        /// <summary>Resolve a mission id across both the campaign list and the skirmish list.</summary>
+        public MissionDefinition FindMission(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            if (missions != null)
+            {
+                for (int i = 0; i < missions.Count; i++)
+                {
+                    if (missions[i] != null && missions[i].missionId == id) return missions[i];
+                }
+            }
+
+            if (skirmishes != null)
+            {
+                for (int i = 0; i < skirmishes.Count; i++)
+                {
+                    if (skirmishes[i] != null && skirmishes[i].missionId == id) return skirmishes[i];
+                }
+            }
+
+            return null;
+        }
+
+        public KingdomUpgradeDefinition FindUpgrade(string id)
+        {
+            if (string.IsNullOrEmpty(id) || upgrades == null) return null;
+            for (int i = 0; i < upgrades.Count; i++)
+            {
+                if (upgrades[i] != null && upgrades[i].upgradeId == id) return upgrades[i];
+            }
+
+            return null;
         }
 
         public void InvalidateCaches()

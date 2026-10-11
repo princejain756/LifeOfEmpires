@@ -113,7 +113,7 @@ namespace LifeOfEmpires
             }
 
             // 3. Economy, one manager per side, seeded from the mission or the balance asset.
-            ResourceBundle playerOpening = missionToPlay != null ? missionToPlay.StartingBundle : economyBalance.startingResources;
+            ResourceBundle playerOpening = BuildOpeningBundle(missionToPlay);
             var playerResources = new ResourceManager(Team.Player, playerOpening);
             var enemyResources = new ResourceManager(Team.Enemy, economyBalance.startingResources);
 
@@ -133,6 +133,26 @@ namespace LifeOfEmpires
             if (hud != null) ServiceLocator.Register(hud);
 
             Debug.Log($"GameBootstrap: battle composed ({database.units.Count} unit definitions, {database.buildings.Count} building definitions, mission '{missionToPlay?.missionId ?? "scene-authored"}').");
+        }
+
+        /// <summary>
+        /// The player's opening stockpile: the mission's authored bundle (or the balance asset's default),
+        /// plus whatever permanent kingdom upgrades the player owns. Upgrades are applied here and
+        /// nowhere else, so a battle can never see a different economy depending on which screen
+        /// composed it.
+        /// </summary>
+        private ResourceBundle BuildOpeningBundle(MissionDefinition missionToPlay)
+        {
+            ResourceBundle baseBundle = missionToPlay != null ? missionToPlay.StartingBundle : economyBalance.startingResources;
+
+            float fraction = ProgressionManager.ResourceBonusFraction(database, SaveSystem.ReadFromDisk());
+            if (fraction <= 0f) return baseBundle;
+
+            return new ResourceBundle(
+                Mathf.RoundToInt(baseBundle.wood * (1f + fraction)),
+                Mathf.RoundToInt(baseBundle.food * (1f + fraction)),
+                Mathf.RoundToInt(baseBundle.gold * (1f + fraction)),
+                baseBundle.crowns);
         }
 
         private void ResolveReferences()

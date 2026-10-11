@@ -11,4 +11,13 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/LifeOfEmpires/Scenes/Battle.unity
     guid: afd42b885364448dcad8496ecb53143b
+  - enabled: 1
+    path: Assets/LifeOfEmpires/Scenes/CampaignMap.unity
+    guid: 4d70cfe8691004e6798639dfc30d93fc
+  - enabled: 1
+    path: Assets/LifeOfEmpires/Scenes/Skirmish.unity
+    guid: f6e9b2c00ca1f4d4abd8920ff099268d
+  - enabled: 1
+    path: Assets/LifeOfEmpires/Scenes/Kingdom.unity
+    guid: e947510a3d62043c884aeea3a5df62c9
   m_configObjects: {}

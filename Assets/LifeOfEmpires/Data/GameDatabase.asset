@@ -25,3 +25,23 @@ MonoBehaviour:
   missions:
   - {fileID: 11400000, guid: adcceefa4171945d7857419a8a639b3d, type: 2}
   - {fileID: 11400000, guid: 5b49d548cba1d42f18e2faca73494a21, type: 2}
+  - {fileID: 11400000, guid: 343f85198d7be4231a8ee410130ea0d3, type: 2}
+  - {fileID: 11400000, guid: 95c2f478b32c6459da87c420c5429f7d, type: 2}
+  - {fileID: 11400000, guid: b172e21d64c3f4825adf343f380cc4d9, type: 2}
+  - {fileID: 11400000, guid: 4d6c5cc51d69347699792cb3af9669c2, type: 2}
+  - {fileID: 11400000, guid: 387f56be231704327a5c1ad578e2e739, type: 2}
+  - {fileID: 11400000, guid: 3d059accaf7fc4e218395add89657c4f, type: 2}
+  - {fileID: 11400000, guid: b75f9fef8e2d64712afb6a10dc9e1538, type: 2}
+  - {fileID: 11400000, guid: 5aecd9212cb624bb0978abba5c8459f6, type: 2}
+  - {fileID: 11400000, guid: 8ce8b4c3fc0fe4c3f9369b92254d3925, type: 2}
+  - {fileID: 11400000, guid: f5d509dd7bb8044a8b44a87610415caf, type: 2}
+  upgrades:
+  - {fileID: 11400000, guid: 4adc6d8a8ba7b4965819528beb3532dd, type: 2}
+  - {fileID: 11400000, guid: 6c0a2a84a57874b1fae4f803dc9a7125, type: 2}
+  - {fileID: 11400000, guid: deea7ecce3e2c40e782ab7e354eb35a5, type: 2}
+  - {fileID: 11400000, guid: 386383df9a2684dcab1a9819dd2c3c21, type: 2}
+  - {fileID: 11400000, guid: 279af08071d2749ceacf02ba3167bbf8, type: 2}
+  skirmishes:
+  - {fileID: 11400000, guid: a57ddff60a2264ae2a56b1b8c2c4c960, type: 2}
+  - {fileID: 11400000, guid: ee44b216e3b10490996252449e5b8e2e, type: 2}
+  - {fileID: 11400000, guid: fb7c81e4dec9449a996e1fca49a4385d, type: 2}

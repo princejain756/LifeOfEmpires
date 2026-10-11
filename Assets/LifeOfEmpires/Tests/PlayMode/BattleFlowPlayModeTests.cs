@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using LifeOfEmpires;
 using NUnit.Framework;
 using UnityEngine;
@@ -267,6 +268,85 @@ namespace LifeOfEmpires.Tests.PlayMode
             Assert.AreEqual(prewarm, _pool.TotalCreated,
                 "landing and returning the projectile must not allocate either");
             Assert.AreEqual(0, _pool.RefusedCount, "not one shot of this exchange may be refused");
+        }
+
+        [UnityTest]
+        public IEnumerator CampaignVictory_RecordsMissionAndCrowns_AndADefeatReplayCannotRevokeIt()
+        {
+            string tempPath = Path.Combine(Application.persistentDataPath, "life_of_empires_playmode_save.json");
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+            SaveSystem.OverridePath = tempPath;
+
+            try
+            {
+                GameDatabase shipped = LoadShippedDatabase();
+                if (shipped == null)
+                {
+                    Assert.Ignore("the shipped GameDatabase has not been generated yet — run LifeOfEmpires/Bootstrap Project first.");
+                }
+
+                MissionDefinition mission = shipped.FindMission("mission_01");
+                Assert.IsNotNull(mission, "the shipped database must define mission_01");
+
+                CampaignManager.SelectMission("mission_01");
+                Assert.AreSame(mission, CampaignManager.ResolvePending(shipped, new SaveData()),
+                    "SelectMission must park a mission a fresh save can play");
+
+                // The battle SetUp composed has no mission, so it can never bank a mission record (the
+                // record write is guarded on the mission). A mission-scoped battle needs its own
+                // BattleManager, so the mission-less one is retired first.
+                PathfindingManager pathfinding = _battle.pathfinding;
+                UnityEngine.Object.DestroyImmediate(_battle.gameObject);
+                BattleContext.End();
+
+                GameObject managerGo = Track(new GameObject("MissionBattleManager"));
+                var battle = managerGo.AddComponent<BattleManager>();
+                battle.gridWidth = 32;
+                battle.gridHeight = 32;
+                battle.cellSize = 1f;
+                battle.spawnMissionEnemies = false;
+                battle.pathfinding = pathfinding;
+                battle.StartBattle(mission, _database, _balance, _combat, _player, _enemy);
+
+                Assert.IsNotNull(BattleContext.Current, "the mission battle must be composed");
+
+                BuildingController enemyHall = battle.SpawnBuilding(TownHallId, Team.Enemy, new Vector3(16f, 0f, 16f));
+                Assert.IsNotNull(enemyHall, "the enemy town hall must spawn on walkable ground");
+                Assert.IsTrue(enemyHall.IsTownHall, "the building under attack must be the town hall the victory reads");
+
+                UnitController swordsman = battle.SpawnUnit(SwordsmanId, Team.Player, new Vector3(14f, 0f, 14f));
+                Assert.IsNotNull(swordsman, "a swordsman must spawn on walkable ground");
+                swordsman.Attack(enemyHall);
+
+                yield return WaitUntil(() => enemyHall == null || enemyHall.IsDestroyed, 30f, "the swordsman to raze the enemy town hall");
+
+                SaveData saved = SaveSystem.ReadFromDisk();
+                Assert.IsTrue(saved.IsComplete("mission_01"), "a victory must record the mission as complete");
+                Assert.GreaterOrEqual(saved.crowns, mission.crownReward, "a victory must bank the mission's crowns");
+
+                // A defeat-style replay: a later, worse attempt cannot take the campaign backwards.
+                SaveData replay = SaveSystem.ReadFromDisk();
+                replay.RecordMissionResult("mission_01", completed: false, stars: 0, seconds: 5f);
+                SaveSystem.WriteToDisk(replay);
+
+                SaveData after = SaveSystem.ReadFromDisk();
+                Assert.IsTrue(after.IsComplete("mission_01"), "a defeat-style replay cannot revoke a completion");
+            }
+            finally
+            {
+                SaveSystem.OverridePath = null;
+                if (File.Exists(tempPath)) File.Delete(tempPath);
+                CampaignManager.ClearPendingMission();
+            }
+        }
+
+        private static GameDatabase LoadShippedDatabase()
+        {
+#if UNITY_EDITOR
+            return UnityEditor.AssetDatabase.LoadAssetAtPath<GameDatabase>("Assets/LifeOfEmpires/Data/GameDatabase.asset");
+#else
+            return null;
+#endif
         }
 
         private int CountLiving(Team team, bool combatOnly)

@@ -124,6 +124,7 @@ namespace LifeOfEmpires
             Context = BattleContext.Begin(mission, database, balance, playerResources, enemyResources, pathfinding, _combat);
 
             AdoptSceneContents();
+            ApplyKingdomStartingWorkers();
 
             if (objectives == null)
             {
@@ -211,6 +212,26 @@ namespace LifeOfEmpires
             unit.DropOff = Context.TownHallOf(unit.team);
 
             if (worker.IsIdle) worker.AssignNode(null);
+        }
+
+        /// <summary>
+        /// Field the kingdom upgrade's bonus workers, if the player owns any and the battle has a player
+        /// town hall to spawn beside. A fresh save owns none, so exactly the authored workers appear.
+        /// The workers are bound by <see cref="SpawnUnit"/>, the same path the scene's own workers take.
+        /// </summary>
+        private void ApplyKingdomStartingWorkers()
+        {
+            int bonus = ProgressionManager.BonusWorkers(_database, SaveSystem.ReadFromDisk());
+            if (bonus <= 0) return;
+
+            BuildingController hall = Context != null ? Context.TownHallOf(Team.Player) : null;
+            if (hall == null) return;
+
+            Vector3 origin = hall.transform.position;
+            for (int i = 0; i < bonus; i++)
+            {
+                SpawnUnit("worker", Team.Player, origin + new Vector3(1.5f + i, 0f, 1.5f + i));
+            }
         }
 
         private void Adopt(BuildingController building)
@@ -421,8 +442,29 @@ namespace LifeOfEmpires
             if (objectives != null && _mission != null)
             {
                 SaveData save = SaveSystem.ReadFromDisk();
-                save.RecordMissionResult(_mission.missionId, outcome == BattleOutcome.Victory, objectives.ScoreStars(Context), _elapsed);
-                if (outcome == BattleOutcome.Victory) save.crowns += _mission.crownReward;
+
+                // A skirmish must never write a campaign record: the campaign map reads database.missions,
+                // and a stray row there would make the map show progress the player never earned in the
+                // campaign.
+                if (!_mission.isSkirmish)
+                {
+                    save.RecordMissionResult(_mission.missionId, outcome == BattleOutcome.Victory, objectives.ScoreStars(Context), _elapsed);
+                }
+
+                if (outcome == BattleOutcome.Victory)
+                {
+                    if (_mission.isSkirmish)
+                    {
+                        int reward = SkirmishComposer.CrownReward(_database, _mission, save);
+                        save.crowns += reward;
+                        save.skirmishWins++;
+                    }
+                    else
+                    {
+                        save.crowns += _mission.crownReward;
+                    }
+                }
+
                 SaveSystem.WriteToDisk(save);
             }
         }
@@ -442,6 +484,14 @@ namespace LifeOfEmpires
             SetPaused(false);
             BattleContext.End();
             SceneManager.LoadScene("Bootstrap");
+        }
+
+        /// <summary>Return to the campaign map. The results panel lands here after a battle.</summary>
+        public void ReturnToCampaignMap()
+        {
+            SetPaused(false);
+            BattleContext.End();
+            SceneManager.LoadScene("CampaignMap");
         }
 
         private void OnDestroy()

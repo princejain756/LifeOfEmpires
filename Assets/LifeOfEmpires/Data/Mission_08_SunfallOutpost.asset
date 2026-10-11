@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fea547438fd534b348727c279dc9d6f5, type: 3}
+  m_Name: Mission_08_SunfallOutpost
+  m_EditorClassIdentifier: LifeOfEmpires.Runtime::LifeOfEmpires.MissionDefinition
+  missionId: mission_08
+  title: 'Sunfall Plains: Outpost'
+  briefing: The Sunfall Plains outpost is fortified. Take it before it calls for help.
+  terrainSeed: 20261018
+  startingWood: 310
+  startingFood: 230
+  startingGold: 90
+  enemyUnitIds:
+  - worker
+  - swordsman
+  - spearman
+  - spearman
+  - archer
+  - archer
+  enemyStartDelaySeconds: 12
+  difficulty: {fileID: 11400000, guid: fe00a7b1c5152421792c418d9808e389, type: 2}
+  victoryCondition: 1
+  defeatCondition: 3
+  starObjectives:
+  - description: Destroy the enemy town hall
+    condition: 1
+    threshold: 1
+    resource: 0
+    crownValue: 1
+  - description: Train 18 units
+    condition: 5
+    threshold: 18
+    resource: 0
+    crownValue: 1
+  - description: Stockpile 400 gold
+    condition: 6
+    threshold: 400
+    resource: 2
+    crownValue: 1
+  isSkirmish: 0
+  crownReward: 5
+  unlockRequirement: mission_07

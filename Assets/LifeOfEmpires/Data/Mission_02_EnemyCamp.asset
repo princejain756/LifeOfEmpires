@@ -46,5 +46,6 @@ MonoBehaviour:
     threshold: 12
     resource: 0
     crownValue: 1
+  isSkirmish: 0
   crownReward: 3
   unlockRequirement: mission_01
