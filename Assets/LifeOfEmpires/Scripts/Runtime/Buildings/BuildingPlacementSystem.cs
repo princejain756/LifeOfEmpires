@@ -131,7 +131,7 @@ namespace LifeOfEmpires
 
             if (payer != null && _definition != null && !payer.CanAfford(_definition.cost))
             {
-                reason = $"cannot afford {_definition.displayName} ({_definition.cost})";
+                reason = $"cannot afford {_definition.displayName} ({_definition.cost.ToDisplay()})";
                 return false;
             }
 

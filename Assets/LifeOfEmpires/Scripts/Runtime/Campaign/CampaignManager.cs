@@ -140,7 +140,9 @@ namespace LifeOfEmpires
                 }
             }
 
-            return string.IsNullOrEmpty(mission.missionId) ? string.Empty : mission.missionId;
+            // Early missions predate the territory system: group them under the homeland instead of
+            // leaking a raw mission id into the map header.
+            return "Homelands";
         }
 
         /// <summary>Every mission authored for one territory, in database order.</summary>

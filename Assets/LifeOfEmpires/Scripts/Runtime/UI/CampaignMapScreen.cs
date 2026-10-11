@@ -23,6 +23,7 @@ namespace LifeOfEmpires.UI
             public Button Button;
             public Text TitleLabel;
             public Text StarsLabel;
+            public Image LockIcon;
         }
 
         [Serializable]
@@ -69,6 +70,7 @@ namespace LifeOfEmpires.UI
                 UiFactory.SetInteractable(row.Button, unlocked);
                 if (row.TitleLabel != null) row.TitleLabel.text = row.Mission.title;
                 if (row.StarsLabel != null) row.StarsLabel.text = unlocked ? CampaignManager.StarLabel(save, row.Mission) : "Locked";
+                if (row.LockIcon != null) row.LockIcon.enabled = !unlocked && row.LockIcon.sprite != null;
             }
         }
 
@@ -143,39 +145,54 @@ namespace LifeOfEmpires.UI
                     new Vector2(0f, -y), new Vector2(-20f, RowHeight));
 
                 int index = state.Rows.Count;
-                Button button = UiFactory.Button($"Mission_{mission.missionId}", rowRoot, mission.title, 30, () => SelectRow(index));
+                Button button = UiFactory.Button($"Mission_{mission.missionId}", rowRoot, mission.title, 30, () => SelectRow(index), "icon_scroll");
                 UiFactory.Place(button.GetComponent<RectTransform>(),
                     new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(0.5f, 0.5f),
                     new Vector2(-120f, 0f), new Vector2(-240f, 0f));
 
+                Image lockIcon = UiFactory.Icon("LockIcon", rowRoot, "icon_lock");
+                UiFactory.Place(lockIcon.rectTransform,
+                    new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f),
+                    new Vector2(-16f, 20f), new Vector2(48f, 48f));
+
+                Image starIcon = UiFactory.Icon("StarIcon", rowRoot, "icon_star");
+                UiFactory.Place(starIcon.rectTransform,
+                    new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f),
+                    new Vector2(-206f, -16f), new Vector2(44f, 44f));
+
                 Text stars = UiFactory.Label("Stars", rowRoot, string.Empty, 28, TextAnchor.MiddleRight, UiFactory.TextColor);
                 UiFactory.Place(stars.rectTransform,
                     new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f),
-                    new Vector2(-16f, 0f), new Vector2(220f, 0f));
+                    new Vector2(-16f, -16f), new Vector2(190f, 60f));
 
                 state.Rows.Add(new MissionRow
                 {
                     Mission = mission,
                     Button = button,
                     TitleLabel = button.GetComponentInChildren<Text>(),
-                    StarsLabel = stars
+                    StarsLabel = stars,
+                    LockIcon = lockIcon
                 });
 
                 y += RowHeight + RowSpacing;
             }
+
+            menu.SetContentHeight(y + 20f);
         }
 
         private void BuildControls()
         {
-            playButton = UiFactory.Button("PlayButton", menu.listRoot, "Play", 36, PlaySelected);
+            // Play and the nav row sit on the fixed footer: the mission list scrolls beneath them
+            // and a tap on them can never be buried under a late mission row.
+            playButton = UiFactory.Button("PlayButton", menu.footerRoot, "Play", 36, PlaySelected, "icon_attack");
             UiFactory.Place(playButton.GetComponent<RectTransform>(),
-                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(0f, 150f), new Vector2(-20f, 120f));
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -8f), new Vector2(-20f, 120f));
 
-            RectTransform nav = UiFactory.Rect("Nav", menu.listRoot);
+            RectTransform nav = UiFactory.Rect("Nav", menu.footerRoot);
             UiFactory.Place(nav,
-                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(0f, 16f), new Vector2(-20f, 110f));
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -140f), new Vector2(-20f, 110f));
 
             // The map is already showing, so the Campaign button is visibly inert rather than a
             // dead-but-hot control that would appear to do nothing.

@@ -99,7 +99,7 @@ namespace LifeOfEmpires.UI
             resultsPanel = root.gameObject.AddComponent<UIResultsPanel>();
             resultsPanel.Build(root);
 
-            pauseButton = UiFactory.Button("PauseButton", root, "Pause", 28, TogglePause);
+            pauseButton = UiFactory.Button("PauseButton", root, "Pause", 28, TogglePause, "icon_pause");
             UiFactory.Place(pauseButton.GetComponent<RectTransform>(),
                 new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f),
                 new Vector2(-16f, -116f), new Vector2(180f, 84f));

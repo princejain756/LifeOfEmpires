@@ -22,6 +22,7 @@ namespace LifeOfEmpires.UI
         public Text titleLabel;
         public Text subtitleLabel;
         public RectTransform listRoot;
+        public RectTransform footerRoot;
 
         /// <summary>Create the shell. Idempotent: a rebuild clears the previous shell rather than stacking on it.</summary>
         public void Build(string title, string subtitle)
@@ -34,6 +35,15 @@ namespace LifeOfEmpires.UI
             {
                 DestroyChild(transform.GetChild(i).gameObject);
             }
+
+            // Generated landscape fills the screen behind the safe area (full-bleed — the notch
+            // region should be painted too). A dark scrim keeps rows and labels readable over it.
+            Image background = UiFactory.Icon("Background", transform, "bg_menu");
+            background.preserveAspect = false;
+            UiFactory.Stretch(background.rectTransform);
+
+            Image scrim = UiFactory.Panel("Scrim", transform, new Color(0f, 0f, 0f, 0.38f));
+            UiFactory.Stretch(scrim.rectTransform);
 
             RectTransform safeRoot = UiFactory.Rect("SafeArea", transform);
             UiFactory.Stretch(safeRoot);
@@ -49,8 +59,45 @@ namespace LifeOfEmpires.UI
                 new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
                 new Vector2(0f, -126f), new Vector2(-48f, 110f));
 
-            listRoot = UiFactory.Rect("List", safeRoot);
-            UiFactory.Stretch(listRoot, left: 24f, bottom: 24f, right: 24f, top: 260f);
+            // The list scrolls inside a masked viewport; without the mask the last rows would draw
+            // straight over the footer, which is what cut missions in half on small screens.
+            RectTransform viewport = UiFactory.Rect("Viewport", safeRoot);
+            UiFactory.Stretch(viewport, left: 24f, bottom: 330f, right: 24f, top: 260f);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 40f;
+
+            listRoot = UiFactory.Rect("List", viewport);
+            listRoot.anchorMin = new Vector2(0f, 1f);
+            listRoot.anchorMax = new Vector2(1f, 1f);
+            listRoot.pivot = new Vector2(0.5f, 1f);
+            listRoot.anchoredPosition = Vector2.zero;
+            listRoot.sizeDelta = new Vector2(0f, 1200f);
+            scroll.content = listRoot;
+            scroll.viewport = viewport;
+
+            // Action buttons live on a fixed footer so they never scroll away with the rows. The
+            // scrim keeps their strip readable while rows pass underneath it.
+            Image footerScrim = UiFactory.Panel("FooterScrim", safeRoot, new Color(0f, 0f, 0f, 0.4f));
+            UiFactory.Place(footerScrim.rectTransform,
+                Vector2.zero, new Vector2(1f, 0f), new Vector2(0.5f, 0f),
+                Vector2.zero, new Vector2(0f, 330f));
+
+            footerRoot = UiFactory.Rect("Footer", safeRoot);
+            UiFactory.Place(footerRoot,
+                Vector2.zero, new Vector2(1f, 0f), new Vector2(0.5f, 0f),
+                new Vector2(0f, 24f), new Vector2(-20f, 290f));
+        }
+
+        /// <summary>Set the scrollable content's height after rows are laid out.</summary>
+        public void SetContentHeight(float height)
+        {
+            if (listRoot == null) return;
+            Vector2 size = listRoot.sizeDelta;
+            size.y = Mathf.Max(100f, height);
+            listRoot.sizeDelta = size;
         }
 
         /// <summary>Author the one EventSystem the game is allowed. Delegates to the HUD's implementation.</summary>

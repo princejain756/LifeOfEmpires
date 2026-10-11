@@ -57,6 +57,11 @@ namespace LifeOfEmpires.UI
                 new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
                 new Vector2(0f, 0f), new Vector2(-20f, 70f));
 
+            Image crownIcon = UiFactory.Icon("CrownIcon", menu.listRoot, "icon_crown");
+            UiFactory.Place(crownIcon.rectTransform,
+                new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f),
+                new Vector2(-196f, -12f), new Vector2(52f, 52f));
+
             BuildRows();
             BuildControls();
             Refresh();
@@ -127,7 +132,7 @@ namespace LifeOfEmpires.UI
                     new Vector2(-120f, 0f), new Vector2(-240f, 0f));
 
                 int index = Rows.Count;
-                Button buy = UiFactory.Button("Buy", rowRoot, "Buy", 28, () => Buy(index));
+                Button buy = UiFactory.Button("Buy", rowRoot, "Buy", 28, () => Buy(index), "icon_crown");
                 UiFactory.Place(buy.GetComponent<RectTransform>(),
                     new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
                     new Vector2(-16f, 0f), new Vector2(200f, 100f));
@@ -139,29 +144,31 @@ namespace LifeOfEmpires.UI
 
         private void BuildControls()
         {
-            // Audio rows sit above the note and Back rows, which keep their existing y, so nothing
-            // that was already placed moves.
+            // Audio rows and the note sit below the upgrade rows in the scroll content: the list is
+            // top-anchored, so they take explicit y offsets past the last upgrade (rows end ~940).
             RectTransform musicRow = menu.NewRow("MusicRow");
             UiFactory.Place(musicRow,
-                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(0f, 440f), new Vector2(-20f, 110f));
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -970f), new Vector2(-20f, 110f));
             musicButton = UiFactory.SettingRow(musicRow, "Music", "Music", "Music: 60%", CycleMusic);
 
             RectTransform effectsRow = menu.NewRow("EffectsRow");
             UiFactory.Place(effectsRow,
-                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(0f, 340f), new Vector2(-20f, 110f));
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -1090f), new Vector2(-20f, 110f));
             effectsButton = UiFactory.SettingRow(effectsRow, "Effects", "Effects", "Effects: 80%", CycleEffects);
 
             noteLabel = UiFactory.Label("Note", menu.listRoot, string.Empty, 28, TextAnchor.MiddleLeft, UiFactory.AccentColor);
             UiFactory.Place(noteLabel.rectTransform,
-                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(0f, 130f), new Vector2(-20f, 70f));
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -1210f), new Vector2(-20f, 70f));
 
-            Button back = UiFactory.Button("BackButton", menu.listRoot, "Back", 30, () => MenuCanvas.LoadScene("CampaignMap"));
+            Button back = UiFactory.Button("BackButton", menu.footerRoot, "Back", 30, () => MenuCanvas.LoadScene("CampaignMap"));
             UiFactory.Place(back.GetComponent<RectTransform>(),
-                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(0f, 20f), new Vector2(-20f, 100f));
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -8f), new Vector2(-20f, 110f));
+
+            menu.SetContentHeight(1300f);
         }
 
         /// <summary>Step the music volume through 20/40/60/80/100% and then off, wrapping to 20%.</summary>

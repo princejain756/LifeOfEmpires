@@ -65,6 +65,47 @@ namespace LifeOfEmpires.UI
             return image;
         }
 
+        /// <summary>
+        /// Load a generated UI sprite from Resources/UI. Returns null when the art is absent so a
+        /// build without the image pass still falls back to flat colours rather than white quads.
+        /// </summary>
+        public static Sprite UiSprite(string name)
+        {
+            return string.IsNullOrEmpty(name) ? null : Resources.Load<Sprite>($"UI/{name}");
+        }
+
+        /// <summary>Gameplay id → generated icon sprite name. Null when no icon is authored for it.</summary>
+        public static string IconForId(string id)
+        {
+            switch (id)
+            {
+                case "worker": return "icon_villager";
+                case "swordsman": return "icon_swordsman";
+                case "spearman": return "icon_spearman";
+                case "archer": return "icon_archer";
+                case "town_hall": return "icon_townhall";
+                case "barracks": return "icon_barracks";
+                case "watchtower": return "icon_watchtower";
+                case "farm": return "icon_farm";
+                default: return null;
+            }
+        }
+
+        /// <summary>
+        /// A non-interactive sprite image. Disables itself when the sprite is missing — a control
+        /// that cannot find its icon should show nothing rather than a flat white square.
+        /// </summary>
+        public static Image Icon(string name, Transform parent, string spriteName)
+        {
+            RectTransform rect = Rect(name, parent);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = UiSprite(spriteName);
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            image.enabled = image.sprite != null;
+            return image;
+        }
+
         public static Text Label(string name, Transform parent, string text, int fontSize, TextAnchor anchor, Color color)
         {
             RectTransform rect = Rect(name, parent);
@@ -81,11 +122,25 @@ namespace LifeOfEmpires.UI
             return label;
         }
 
-        public static Button Button(string name, Transform parent, string label, int fontSize, Action onClick)
+        public static Button Button(string name, Transform parent, string label, int fontSize, Action onClick, string iconName = null)
         {
             RectTransform rect = Rect(name, parent);
             var image = rect.gameObject.AddComponent<Image>();
-            image.color = ButtonColor;
+
+            // Generated wood-plaque face when the art pass ran; the flat colour is the fallback and
+            // still what SetInteractable tints for the disabled state.
+            Sprite face = UiSprite("btn_wood");
+            if (face != null)
+            {
+                image.sprite = face;
+                image.type = Image.Type.Simple;
+                // The plaque supplies its own colour; the tint would only dirty it.
+                image.color = Color.white;
+            }
+            else
+            {
+                image.color = ButtonColor;
+            }
             image.raycastTarget = true;
 
             var button = rect.gameObject.AddComponent<Button>();
@@ -104,7 +159,19 @@ namespace LifeOfEmpires.UI
             if (onClick != null) button.onClick.AddListener(() => onClick());
 
             Text child = Label("Label", rect, label, fontSize, TextAnchor.MiddleCenter, TextColor);
-            Stretch(child.rectTransform);
+            if (iconName == null)
+            {
+                Stretch(child.rectTransform);
+            }
+            else
+            {
+                Stretch(child.rectTransform, left: 76f, right: 8f);
+                child.alignment = TextAnchor.MiddleLeft;
+                Image icon = Icon("Icon", rect, iconName);
+                Place(icon.rectTransform,
+                    new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+                    new Vector2(10f, 0f), new Vector2(60f, 60f));
+            }
             return button;
         }
 
@@ -115,7 +182,10 @@ namespace LifeOfEmpires.UI
             button.interactable = interactable;
             if (button.targetGraphic is Image image)
             {
-                image.color = interactable ? ButtonColor : ButtonDisabledColor;
+                // Sprite-faced buttons stay white when enabled; the disabled tint still applies.
+                image.color = interactable
+                    ? (image.sprite != null ? Color.white : ButtonColor)
+                    : ButtonDisabledColor;
             }
         }
 

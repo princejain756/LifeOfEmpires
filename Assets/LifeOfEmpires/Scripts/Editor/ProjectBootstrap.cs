@@ -66,6 +66,7 @@ namespace LifeOfEmpires.Editor
                 RenderPipelineAsset urpAsset = CreateRenderPipelineAssets();
                 GameDatabase database = CreateContentAssets();
                 EnsureShaderKeepMaterials();
+                EnsureUiSprites();
                 ConfigureRenderPipeline(urpAsset);
                 if (urpAsset is UniversalRenderPipelineAsset universal) ConfigureRenderPipelineSettings(universal);
                 ConfigureQualityTiers(urpAsset);
@@ -117,6 +118,43 @@ namespace LifeOfEmpires.Editor
             "Sprites/Default",
             "Standard"
         };
+
+        // Generated UI art lands as plain PNGs in Resources/UI; without this pass they import as
+        // Default textures and every Resources.Load<Sprite> the HUD does returns null. tex_grass
+        // is the one exception — it feeds a 3D material, not a sprite.
+        private static void EnsureUiSprites()
+        {
+            string uiFolder = Root + "/Resources/UI";
+            if (!AssetDatabase.IsValidFolder(uiFolder)) return;
+
+            AssetDatabase.Refresh();
+            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { uiFolder }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!(AssetImporter.GetAtPath(path) is TextureImporter importer)) continue;
+
+                if (path.EndsWith("/tex_grass.png", StringComparison.Ordinal))
+                {
+                    if (importer.textureType != TextureImporterType.Default || !importer.mipmapEnabled)
+                    {
+                        importer.textureType = TextureImporterType.Default;
+                        importer.mipmapEnabled = true;
+                        importer.SaveAndReimport();
+                    }
+                    continue;
+                }
+
+                if (importer.textureType == TextureImporterType.Sprite
+                    && importer.spriteImportMode == SpriteImportMode.Single
+                    && importer.alphaIsTransparency) continue;
+
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false;
+                importer.SaveAndReimport();
+            }
+        }
 
         // FBX-embedded materials import on whatever shader the importer picks. Instances get
         // re-slotted onto shared URP Lit materials at spawn time inside ModelLibrary, so the
@@ -1002,6 +1040,15 @@ namespace LifeOfEmpires.Editor
             MissionDefinition mission = FirstMission(liveDatabase);
 
             Material grass = CreateMaterialAsset("Ground_Grass", GrassColor);
+            // Generated painterly grass replaces the flat spec colour when the art pass has run;
+            // the tint drops to white so the texture supplies the colour.
+            Texture2D grassTex = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Resources/UI/tex_grass.png");
+            if (grassTex != null)
+            {
+                if (grass.HasProperty("_BaseMap")) grass.SetTexture("_BaseMap", grassTex);
+                if (grass.HasProperty("_BaseColor")) grass.SetColor("_BaseColor", Color.white);
+                EditorUtility.SetDirty(grass);
+            }
             Material bark = CreateMaterialAsset("Tree_Bark", BarkColor);
             Material leaf = CreateMaterialAsset("Tree_Leaf", LeafColor);
             Material farm = CreateMaterialAsset("Farm_Soil", FarmColor);
@@ -1146,7 +1193,9 @@ namespace LifeOfEmpires.Editor
             var go = new GameObject("GameBootstrap");
             GameBootstrap bootstrap = go.AddComponent<GameBootstrap>();
             bootstrap.loadBattleSceneOnStart = true;
-            bootstrap.battleSceneName = "Battle";
+            // Landing is the campaign map: the player picks a mission there, and the battle scene's
+            // own GameBootstrap (loadBattleSceneOnStart=false) composes the fight it was handed.
+            bootstrap.battleSceneName = "CampaignMap";
             bootstrap.database = liveDatabase;
             bootstrap.economyBalance = liveDatabase.economy;
 

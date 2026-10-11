@@ -141,15 +141,17 @@ namespace LifeOfEmpires.UI
 
         private void BuildControls()
         {
-            startButton = UiFactory.Button("StartButton", menu.listRoot, "Start", 34, StartSkirmish);
+            startButton = UiFactory.Button("StartButton", menu.footerRoot, "Start", 34, StartSkirmish, "icon_attack");
             UiFactory.Place(startButton.GetComponent<RectTransform>(),
-                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(0f, 130f), new Vector2(-20f, 110f));
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -8f), new Vector2(-20f, 120f));
 
-            Button back = UiFactory.Button("BackButton", menu.listRoot, "Back", 30, () => MenuCanvas.LoadScene("CampaignMap"));
+            Button back = UiFactory.Button("BackButton", menu.footerRoot, "Back", 30, () => MenuCanvas.LoadScene("CampaignMap"));
             UiFactory.Place(back.GetComponent<RectTransform>(),
-                new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(0f, 20f), new Vector2(-20f, 100f));
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -140f), new Vector2(-20f, 110f));
+
+            menu.SetContentHeight(680f);
         }
     }
 }

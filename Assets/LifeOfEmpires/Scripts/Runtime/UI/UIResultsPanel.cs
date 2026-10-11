@@ -42,6 +42,13 @@ namespace LifeOfEmpires.UI
                 Vector2.zero, new Vector2(-48f, -240f));
 
             Image card = UiFactory.Panel("Card", backdrop.transform, UiFactory.PanelColor);
+            Sprite cardFace = UiFactory.UiSprite("panel_wood");
+            if (cardFace != null)
+            {
+                card.sprite = cardFace;
+                card.type = Image.Type.Simple;
+                card.color = Color.white;
+            }
             UiFactory.Place(card.rectTransform,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 Vector2.zero, new Vector2(760f, 720f));
@@ -59,12 +66,22 @@ namespace LifeOfEmpires.UI
             starsLabel = UiFactory.Label("Stars", card.transform, string.Empty, 34, TextAnchor.MiddleCenter, UiFactory.TextColor);
             UiFactory.Place(starsLabel.rectTransform,
                 new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -220f), new Vector2(-40f, 60f));
+                new Vector2(28f, -220f), new Vector2(-40f, 60f));
+
+            Image starIcon = UiFactory.Icon("StarIcon", card.transform, "icon_star");
+            UiFactory.Place(starIcon.rectTransform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(1f, 1f),
+                new Vector2(-96f, -222f), new Vector2(56f, 56f));
 
             crownsLabel = UiFactory.Label("Crowns", card.transform, string.Empty, 34, TextAnchor.MiddleCenter, UiFactory.AccentColor);
             UiFactory.Place(crownsLabel.rectTransform,
                 new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -290f), new Vector2(-40f, 60f));
+                new Vector2(28f, -290f), new Vector2(-40f, 60f));
+
+            Image crownIcon = UiFactory.Icon("CrownIcon", card.transform, "icon_crown");
+            UiFactory.Place(crownIcon.rectTransform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(1f, 1f),
+                new Vector2(-116f, -292f), new Vector2(56f, 56f));
 
             returnButton = UiFactory.Button("Return", card.transform, "Return", 32, ReturnToBootstrap);
             UiFactory.Place(returnButton.GetComponent<RectTransform>(),

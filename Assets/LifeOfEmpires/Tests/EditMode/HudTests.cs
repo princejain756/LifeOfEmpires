@@ -78,15 +78,15 @@ namespace LifeOfEmpires.Tests.EditMode
             TestWorld.Build();
             BattleHud hud = BuildHud();
 
-            Assert.AreEqual("Wood 0", hud.resourcesBar.woodLabel.text);
+            Assert.AreEqual("0", hud.resourcesBar.woodLabel.text);
 
             TestWorld.Player.Add(ResourceType.Wood, 120);
             TestWorld.Player.Add(ResourceType.Gold, 45);
 
-            Assert.AreEqual("Wood 120", hud.resourcesBar.woodLabel.text,
+            Assert.AreEqual("120", hud.resourcesBar.woodLabel.text,
                 "the bar must update from ResourceManager.OnResourceChanged");
-            Assert.AreEqual("Gold 45", hud.resourcesBar.goldLabel.text);
-            Assert.AreEqual("Food 0", hud.resourcesBar.foodLabel.text, "an untouched resource must stay at zero");
+            Assert.AreEqual("45", hud.resourcesBar.goldLabel.text);
+            Assert.AreEqual("0", hud.resourcesBar.foodLabel.text, "an untouched resource must stay at zero");
         }
 
         [Test]

@@ -29,19 +29,26 @@ namespace LifeOfEmpires.UI
                 new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
                 new Vector2(0f, 0f), new Vector2(0f, 100f));
 
-            woodLabel = BuildSlot(panel.transform, "Wood", 0f, 0.25f);
-            foodLabel = BuildSlot(panel.transform, "Food", 0.25f, 0.5f);
-            goldLabel = BuildSlot(panel.transform, "Gold", 0.5f, 0.75f);
-            crownsLabel = BuildSlot(panel.transform, "Crowns", 0.75f, 1f);
+            woodLabel = BuildSlot(panel.transform, "Wood", "icon_wood", 0f, 0.25f);
+            foodLabel = BuildSlot(panel.transform, "Food", "icon_food", 0.25f, 0.5f);
+            goldLabel = BuildSlot(panel.transform, "Gold", "icon_gold", 0.5f, 0.75f);
+            crownsLabel = BuildSlot(panel.transform, "Crowns", "icon_crown", 0.75f, 1f);
         }
 
-        private static Text BuildSlot(Transform parent, string name, float left, float right)
+        private static Text BuildSlot(Transform parent, string name, string iconName, float left, float right)
         {
-            Text label = UiFactory.Label(name, parent, name, 34, TextAnchor.MiddleCenter, UiFactory.TextColor);
+            // Icon sits against the slot's left edge; the count stays centred in the slot so it
+            // reads the same at every stockpile width.
+            Image icon = UiFactory.Icon($"{name}Icon", parent, iconName);
+            UiFactory.Place(icon.rectTransform,
+                new Vector2(left, 0.5f), new Vector2(left, 0.5f), new Vector2(0f, 0.5f),
+                new Vector2(20f, 0f), new Vector2(60f, 60f));
+
+            Text label = UiFactory.Label(name, parent, name, 36, TextAnchor.MiddleCenter, UiFactory.TextColor);
             RectTransform rect = label.rectTransform;
             rect.anchorMin = new Vector2(left, 0f);
             rect.anchorMax = new Vector2(right, 1f);
-            rect.offsetMin = Vector2.zero;
+            rect.offsetMin = new Vector2(30f, 0f);
             rect.offsetMax = Vector2.zero;
             return label;
         }
@@ -80,15 +87,15 @@ namespace LifeOfEmpires.UI
         /// <summary>Re-render wood, food and gold from the current stockpile.</summary>
         public void RefreshStockpile()
         {
-            if (woodLabel != null) woodLabel.text = $"Wood {Stockpile(ResourceType.Wood)}";
-            if (foodLabel != null) foodLabel.text = $"Food {Stockpile(ResourceType.Food)}";
-            if (goldLabel != null) goldLabel.text = $"Gold {Stockpile(ResourceType.Gold)}";
+            if (woodLabel != null) woodLabel.text = $"{Stockpile(ResourceType.Wood)}";
+            if (foodLabel != null) foodLabel.text = $"{Stockpile(ResourceType.Food)}";
+            if (goldLabel != null) goldLabel.text = $"{Stockpile(ResourceType.Gold)}";
         }
 
         /// <summary>Re-render the crown count. Crowns live in the save file, not the stockpile.</summary>
         public void RefreshCrowns()
         {
-            if (crownsLabel != null) crownsLabel.text = $"Crowns {SaveSystem.ReadFromDisk().crowns}";
+            if (crownsLabel != null) crownsLabel.text = $"{SaveSystem.ReadFromDisk().crowns}";
         }
 
         private int Stockpile(ResourceType type) => _resources != null ? _resources.Get(type) : 0;

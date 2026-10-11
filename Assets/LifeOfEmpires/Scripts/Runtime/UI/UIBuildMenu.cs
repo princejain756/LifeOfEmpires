@@ -59,9 +59,10 @@ namespace LifeOfEmpires.UI
                     Button button = UiFactory.Button(
                         $"Build_{id}",
                         panel.transform,
-                        $"{definition.displayName}  {definition.cost}",
+                        $"{definition.displayName}  {definition.cost.ToDisplay()}",
                         26,
-                        () => RequestPlacement(id));
+                        () => RequestPlacement(id),
+                        UiFactory.IconForId(definition.id));
 
                     UiFactory.Place(button.GetComponent<RectTransform>(),
                         new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),

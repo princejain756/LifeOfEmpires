@@ -88,6 +88,26 @@ namespace LifeOfEmpires
         {
             return $"wood={wood} food={food} gold={gold} crowns={crowns}";
         }
+
+        /// <summary>Compact price for buttons and hints: only the resources that cost something.</summary>
+        public string ToDisplay()
+        {
+            if (IsFree) return "free";
+
+            var parts = new System.Text.StringBuilder();
+            AppendPart(parts, wood, "wood");
+            AppendPart(parts, food, "food");
+            AppendPart(parts, gold, "gold");
+            AppendPart(parts, crowns, "crowns");
+            return parts.ToString();
+        }
+
+        private static void AppendPart(System.Text.StringBuilder parts, int amount, string name)
+        {
+            if (amount <= 0) return;
+            if (parts.Length > 0) parts.Append(' ');
+            parts.Append(amount).Append(' ').Append(name);
+        }
     }
 
     /// <summary>A bundle of resources, used for deposits, rewards and starting stockpiles.</summary>

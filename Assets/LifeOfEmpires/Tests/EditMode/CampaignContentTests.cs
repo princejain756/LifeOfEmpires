@@ -208,8 +208,8 @@ namespace LifeOfEmpires.Tests.EditMode
             }
 
             MissionDefinition odd = NewMission("odd_id", "Nowhere Special");
-            Assert.AreEqual("odd_id", CampaignManager.TerritoryOf(odd),
-                "a title with no known territory prefix falls back to the mission id, never to empty");
+            Assert.AreEqual("Homelands", CampaignManager.TerritoryOf(odd),
+                "a title with no known territory prefix groups under Homelands, never a raw mission id or empty");
             Assert.IsEmpty(CampaignManager.TerritoryOf(null));
         }
 

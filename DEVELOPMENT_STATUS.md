@@ -25,7 +25,7 @@ Every number here was observed in those runs; nothing is estimated.
   `LifeOfEmpires.Tests.PlayMode`. Runtime code compiles against `UnityEngine` + `Unity.InputSystem`
   + `UnityEngine.UI` (uGUI 2.6.0, declared in `Packages/manifest.json`; `com.unity.modules.physics2d`
   is declared explicitly because it is uGUI's own hard dependency).
-- **Five real scenes**, all in `EditorBuildSettings`: `Bootstrap.unity` (loads `Battle`),
+- **Five real scenes**, all in `EditorBuildSettings`: `Bootstrap.unity` (loads `CampaignMap`),
   `Battle.unity` — ground plane in the spec palette `#85A66A`, isometric camera rig, player town
   hall + **player barracks**, 3 workers, 3 trees / 2 farms / 1 gold vein, enemy town hall + barracks
   + swordsman + spearman, all with URP/Lit materials and wired system references (database, mission,
@@ -91,8 +91,18 @@ Every number here was observed in those runs; nothing is estimated.
 - **Campaign progression.** `CampaignManager` consumes `MissionDefinition.unlockRequirement`
   (`IsUnlocked`, `NextPlayableMission`, `StarLabel`); the results card's Next Mission button parks the
   chosen mission and `GameBootstrap` picks it up when it composes the next battle.
-- **Content.** 4 unit definitions, 3 building definitions, 2 missions, 3 difficulty profiles, 1 economy
-  balance — all as ScriptableObjects (`GAME_BALANCE.md`).
+- **Content.** 4 unit definitions, 3 building definitions, 12 campaign missions across 7 map regions
+  (Homelands plus the six `TerritoryOrder` territories), 3 skirmish maps × 3 difficulties, 3 difficulty
+  profiles, 1 economy balance — all as ScriptableObjects (`GAME_BALANCE.md`).
+- **Generated UI/art set.** 26 painterly assets produced through the documented ChatGPT
+  image-generation pipeline (`MAKERS MD FILES/IMAGEFROMCHATGPT.MD`), chroma-keyed and trimmed into
+  `Resources/UI/`: resource icons (wood/food/gold/crown), command icons (move/attack/stop/army/hall),
+  building and unit icons, scroll/star/lock, the wooden button plaque and panel faces, the campaign-map
+  landscape background, a painted grass texture on the battle ground, and the app icon (stamped into
+  the Xcode `AppIcon` set by `BuildIosXcodeProject`, rendered RGB without alpha). Raw generation
+  output is kept in `art_raw/`. The campaign map runs as the app's landing scene with a scrollable
+  mission list pinned above a fixed Play/nav footer; pre-territory missions group under "Homelands"
+  instead of leaking raw mission ids.
 - **Audio.** Four locally generated clips — `Music_Menu.wav` (24 s), `Music_Battle.wav` (28 s),
   `Sting_Victory.wav` (12 s), `Sting_Defeat.wav` (12 s), all 32 kHz mono 16-bit — live in
   `Assets/LifeOfEmpires/Audio/` and are duplicated into `Assets/LifeOfEmpires/Resources/` so
@@ -119,9 +129,9 @@ Every number here was observed in those runs; nothing is estimated.
 
 ## 2. Partially completed
 
-- **The HUD has no campaign map behind it.** The results card can start the next unlocked mission
-  directly, but there is no mission-select screen: the campaign map is Milestone 4 and no scene for it
-  exists yet.
+- **Menu art is a first pass.** The generated icon set, wood-plaque buttons and landscape background
+  read as a cohesive skin in the simulator, but there are no transitions, parallax, or a dedicated
+  map-view screen — the campaign map is a scrolling list, not an explorable map image.
 - **Building selection is HUD-local.** Tapping a player building opens its production panel; the
   selection manager itself still only knows about units, and the panel lives on the HUD. One tap means
   one thing: `BattleInputController` resolves a tap that lands on one of the player's own buildings
@@ -137,8 +147,7 @@ Every number here was observed in those runs; nothing is estimated.
   and remaps every renderer to generated URP/Lit palette materials at spawn time — the gameplay
   components (`UnitController`, `BuildingController`, `ResourceNode`, colliders) are unchanged.
   `BattleManager.StartBattle` focuses the camera rig on the player town hall at battle start.
-  The HUD is still flat colour blocks and the one builtin font (`LegacyRuntime.ttf`); `Prefabs/`
-  is reserved and empty.
+  The HUD uses the generated icon/panel set described in §1; `Prefabs/` is reserved and empty.
 - **Audio covers music only.** Menu theme, battle loop and the victory/defeat stings ship (§1);
   gathering, building, combat and generic UI cues do not — spec §18 lists them as its own category, and
   reusing a sting for a wood deposit would be worse than silence. Music/effects volume and mute are set
@@ -235,10 +244,12 @@ Nothing below has been observed to work, and none of it is claimed:
 - **Touch feel on hardware.** Tap forgiveness, pinch-vs-pan disambiguation, and one-handed reach have
   only been reasoned about and unit-tested in screen space (72 px radius, 22 px drag threshold,
   90 px double-tap drift) — never felt on a device.
-- **The HUD on a device.** Verified rendered in the iPhone 16 Pro simulator (iOS 26.3): resource
-  bar, objective hint, selection panel, build menu, Pause all draw correctly, models render,
-  workers gather live. Not yet observed on physical hardware — safe-area handling under a real
-  notch/Dynamic Island, text legibility, button hit-size and touch feel have not been felt on a
+- **The HUD on a device.** Verified rendered in the iPhone 16 Pro simulator (iOS 26.3): the campaign
+  map shows named territory headers, scrolling mission rows with star/lock icons, and a pinned
+  Play/nav footer; in battle the icon resource bar, objective hint, selection panel with command
+  icons, priced build menu and Pause all draw correctly over the textured grass field, models
+  render, workers gather live. Not yet observed on physical hardware — safe-area handling under a
+  real notch/Dynamic Island, text legibility, button hit-size and touch feel have not been felt on a
   device. Batchmode has no display at all, so `SafeAreaFitter` is a no-op there.
 - **Advertising and in-app purchase.** No SDK is integrated and no store interaction has occurred
   (`MONETIZATION_SETUP.md`).
