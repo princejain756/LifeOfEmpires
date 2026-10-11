@@ -48,6 +48,7 @@ namespace LifeOfEmpires.UI
 
             BuildControls();
             Refresh();
+            SceneTransition.FadeInOnLoad();
         }
 
         /// <summary>Re-read the save and repaint the resolved skirmish and the current-choice markers.</summary>

@@ -207,7 +207,7 @@ namespace LifeOfEmpires.UI
                 return;
             }
 
-            UnityEngine.SceneManagement.SceneManager.LoadScene("CampaignMap");
+            SceneTransition.Go("CampaignMap");
         }
 
         /// <summary>

@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using LifeOfEmpires.UI;
 
 namespace LifeOfEmpires
@@ -56,7 +55,7 @@ namespace LifeOfEmpires
         private void Start()
         {
             if (!loadBattleSceneOnStart) return;
-            SceneManager.LoadScene(battleSceneName);
+            SceneTransition.Go(battleSceneName);
         }
 
         /// <summary>

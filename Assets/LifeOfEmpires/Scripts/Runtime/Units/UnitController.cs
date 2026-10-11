@@ -59,6 +59,7 @@ namespace LifeOfEmpires
         private PathfindingManager _pathfinding;
         private CombatSystem _combat;
         private HealthBar _healthBar;
+        private UnitAnimator _animator;
 
         private Vector3[] _path;
         private int _pathIndex;
@@ -296,6 +297,9 @@ namespace LifeOfEmpires
             _dead = true;
             state = UnitState.Dead;
             health = 0;
+
+            if (_animator == null) _animator = GetComponent<UnitAnimator>();
+            if (_animator != null) _animator.PlayDeath();
 
             ClearPath();
             _attackTarget = null;

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using LifeOfEmpires.Audio;
+using LifeOfEmpires.UI;
 
 namespace LifeOfEmpires
 {
@@ -202,6 +202,7 @@ namespace LifeOfEmpires
         {
             if (unit == null) return;
 
+            if (unit.GetComponent<UnitAnimator>() == null) unit.gameObject.AddComponent<UnitAnimator>().Bind();
             if (!unit.IsInitialised) unit.Initialize(unit.definition, unit.team, pathfinding, _combat);
 
             List<UnitController> roster = Context.UnitsOf(unit.team);
@@ -307,6 +308,7 @@ namespace LifeOfEmpires
 
             var unit = go.AddComponent<UnitController>();
             unit.team = team;
+            if (unit.GetComponent<UnitAnimator>() == null) unit.gameObject.AddComponent<UnitAnimator>().Bind();
             unit.Initialize(definition, team, pathfinding, _combat);
 
             Context.UnitsOf(team).Add(unit);
@@ -525,7 +527,7 @@ namespace LifeOfEmpires
         {
             SetPaused(false);
             BattleContext.End();
-            SceneManager.LoadScene("Bootstrap");
+            SceneTransition.Go("Bootstrap");
         }
 
         /// <summary>Return to the campaign map. The results panel lands here after a battle.</summary>
@@ -533,7 +535,7 @@ namespace LifeOfEmpires
         {
             SetPaused(false);
             BattleContext.End();
-            SceneManager.LoadScene("CampaignMap");
+            SceneTransition.Go("CampaignMap");
         }
 
         private void OnDestroy()

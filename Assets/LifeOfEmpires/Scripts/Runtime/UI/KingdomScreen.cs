@@ -65,6 +65,7 @@ namespace LifeOfEmpires.UI
             BuildRows();
             BuildControls();
             Refresh();
+            SceneTransition.FadeInOnLoad();
         }
 
         /// <summary>Re-read the save and repaint the stage, the crown balance and every buy button.</summary>

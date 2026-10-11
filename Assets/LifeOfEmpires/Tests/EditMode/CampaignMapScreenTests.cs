@@ -4,6 +4,7 @@ using LifeOfEmpires;
 using LifeOfEmpires.UI;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace LifeOfEmpires.Tests.EditMode
 {
@@ -107,6 +108,85 @@ namespace LifeOfEmpires.Tests.EditMode
 
             Assert.AreEqual(TestWorld.Database.missions[0].missionId, CampaignManager.PendingMissionId,
                 "an unlocked row must park its mission for the battle to pick up");
+        }
+
+        [Test]
+        public void CampaignMap_MapSurfaceKeepsEveryRowAddressable()
+        {
+            CampaignMapScreen screen = CreateScreen<CampaignMapScreen>();
+            screen.Build(TestWorld.Database);
+
+            for (int i = 0; i < screen.state.Rows.Count; i++)
+            {
+                Button button = screen.state.Rows[i].Button;
+                Assert.IsNotNull(button, $"row {i} must carry a Button");
+
+                // The plate must live inside the map surface — walking ancestors keeps the
+                // assertion tied to THIS screen's hierarchy, not a stray global object.
+                Transform cursor = button.transform;
+                bool underMapContent = false;
+                while (cursor != null)
+                {
+                    if (cursor.name == "mapContent") { underMapContent = true; break; }
+                    cursor = cursor.parent;
+                }
+                Assert.IsTrue(underMapContent, $"row {i}'s button must sit inside mapContent");
+
+                Transform row = FindByName(screen.transform, $"MissionRow_{screen.state.Rows[i].Mission.missionId}");
+                Assert.IsNotNull(row, "the MissionRow_<id> object must exist by name under the screen");
+                Assert.IsNotNull(row.GetComponent<Button>(), "the MissionRow_<id> object must carry the Button");
+            }
+        }
+
+        [Test]
+        public void CampaignMap_ScrollContentHeightFitsTheLayout()
+        {
+            CampaignMapScreen screen = CreateScreen<CampaignMapScreen>();
+            screen.Build(TestWorld.Database);
+
+            RectTransform content = screen.menu.listRoot;
+            Assert.IsNotNull(content, "the scroll content must exist");
+
+            var viewport = content.parent as RectTransform;
+            Assert.IsNotNull(viewport, "the content must sit inside a viewport rect");
+            var scroll = viewport.GetComponent<ScrollRect>();
+            Assert.IsNotNull(scroll, "the viewport must carry the ScrollRect");
+            Assert.AreSame(content, scroll.content, "ScrollRect.content must be the list root");
+
+            // Top-pivot, top-stretch, anchored to zero: the canonical scroll-content shape — the
+            // content's top edge pins to the viewport's top edge so the first band renders in view.
+            Assert.AreEqual(1f, content.anchorMin.y, "content must be top-anchored");
+            Assert.AreEqual(1f, content.anchorMax.y, "content must be top-anchored");
+            Assert.AreEqual(1f, content.pivot.y, "content pivot must sit on its top edge");
+            Assert.AreEqual(0f, content.anchoredPosition.y, 0.01f,
+                "a freshly built map must open with the content's top at the viewport top");
+
+            // ContentHeight is expressed in viewport-width units, so the scroll content's pixel
+            // height must cover units × the measured viewport width — 1032 is the screen's
+            // documented fallback when layout has not run (batch/EditMode).
+            Canvas.ForceUpdateCanvases();
+            float width = viewport.rect.width > 1f ? viewport.rect.width : 1032f;
+            var nodes = CampaignMapLayout.Build(TestWorld.Database, SaveSystem.ReadFromDisk());
+            float needed = CampaignMapLayout.ContentHeight(nodes) * width;
+            Assert.GreaterOrEqual(content.sizeDelta.y, needed,
+                "the scroll content must be tall enough to hold every node the layout placed");
+
+            Transform mapContent = FindByName(screen.transform, "mapContent");
+            Assert.IsNotNull(mapContent, "the map surface must exist inside the scroll content");
+            Assert.AreEqual(content.sizeDelta.y, ((RectTransform)mapContent).sizeDelta.y, 0.01f,
+                "the map surface must fill the whole scroll content");
+        }
+
+        private static Transform FindByName(Transform root, string name)
+        {
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform child = root.GetChild(i);
+                if (child.name == name) return child;
+                Transform found = FindByName(child, name);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         [Test]

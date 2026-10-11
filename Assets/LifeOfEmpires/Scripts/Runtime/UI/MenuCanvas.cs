@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace LifeOfEmpires.UI
@@ -113,7 +112,7 @@ namespace LifeOfEmpires.UI
         /// </summary>
         public static void LoadScene(string sceneName)
         {
-            if (Application.isPlaying) SceneManager.LoadScene(sceneName);
+            if (Application.isPlaying) SceneTransition.Go(sceneName);
         }
 
         private static void DestroyChild(GameObject child)

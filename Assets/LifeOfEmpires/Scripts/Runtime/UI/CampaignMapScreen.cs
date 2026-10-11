@@ -6,13 +6,15 @@ using UnityEngine.UI;
 namespace LifeOfEmpires.UI
 {
     /// <summary>
-    /// The campaign map: one row per authored mission, grouped under its territory, with the stars the
-    /// player has recorded and the lock state the unlock rule reports. It reads state and calls into
-    /// <see cref="CampaignManager"/> — it never re-implements the unlock rule or star scoring.
+    /// The campaign map: one mission plate per authored mission, laid out by
+    /// <see cref="CampaignMapLayout"/> over a grass surface — territory bands in conquest order,
+    /// missions serpentined inside each band, a wooden ribbon tracing the route. Stars, locks and
+    /// conquest state all come from <see cref="CampaignManager"/> — the screen never re-implements
+    /// the unlock rule or star scoring, it only positions what the rules already decided.
     ///
-    /// Locked missions are shown, not hidden: spec §11 requires the map to represent the kingdoms still
-    /// ahead. Selecting a row only shows its briefing; playing is a separate, explicit button, so a
-    /// mis-tap cannot drop the player into a battle they cannot win.
+    /// Locked missions are shown, not hidden: spec §11 requires the map to represent the kingdoms
+    /// still ahead. Selecting a plate only shows its briefing; playing is a separate, explicit
+    /// button, so a mis-tap cannot drop the player into a battle they cannot win.
     /// </summary>
     public class CampaignMapScreen : MonoBehaviour
     {
@@ -38,9 +40,38 @@ namespace LifeOfEmpires.UI
         public State state;
         public Button playButton;
 
-        private const float RowHeight = 150f;
-        private const float RowSpacing = 20f;
-        private const float HeaderHeight = 60f;
+        /// <summary>Every repaintable visual one node owns, so Refresh walks one list per row.</summary>
+        private sealed class NodeVisual
+        {
+            public Image Plate;
+            public Image Emblem;
+            public readonly Image[] Stars = new Image[3];
+        }
+
+        // Node plates and territory headers repaint in place on Refresh — rebuilding the whole map
+        // for a star change would flicker and is never necessary. Headers stay a separate list:
+        // they are per-band, not per-row.
+        private readonly List<NodeVisual> _visuals = new List<NodeVisual>();
+        private readonly List<Text> _headers = new List<Text>();
+
+        private RectTransform _mapContent;
+        private List<MapNode> _nodes;
+        private float _mapWidth = FallbackMapWidth;
+
+        // The scroll viewport's effective width in reference pixels (1080 minus its insets); the
+        // real rect width is preferred when layout has already run.
+        private const float FallbackMapWidth = 1032f;
+        private const float NodeSize = 220f;
+        private const float PlateSize = 110f;
+        private const float PlateCentre = 64f;
+        private const float TitleBand = 80f;
+        private const float StarRowHeight = 40f;
+        private const float NodeTail = 320f;
+
+        private static readonly Color UnlockedTint = new Color(1f, 1f, 1f);
+        private static readonly Color CompletedTint = new Color(0.72f, 0.92f, 0.66f);
+        private static readonly Color LockedTint = new Color(0.52f, 0.52f, 0.55f);
+        private static readonly Color RibbonTint = new Color(0.55f, 0.38f, 0.22f, 0.85f);
 
         public void Build(GameDatabase database)
         {
@@ -50,31 +81,59 @@ namespace LifeOfEmpires.UI
             if (menu == null) menu = gameObject.AddComponent<MenuCanvas>();
             menu.Build("Campaign", "Choose a mission.");
 
-            BuildRows();
+            BuildMap();
             BuildControls();
             Refresh();
+            SceneTransition.FadeInOnLoad();
         }
 
-        /// <summary>Re-read the save and repaint every row. Called from Start and whenever the map is shown.</summary>
+        /// <summary>Re-read the save and repaint every plate. Called from Start and whenever the map is shown.</summary>
         public void Refresh()
         {
             if (database == null || state.Rows == null) return;
 
+            // The viewport width is only real after layout has run — re-measure before repainting
+            // so the content rect never carries a stale height into a resized scroll surface.
+            _nodes = CampaignMapLayout.Build(database, SaveSystem.ReadFromDisk());
+            ApplyContentHeight();
+
             SaveData save = SaveSystem.ReadFromDisk();
+            List<MapNode> nodes = _nodes;
+
             for (int i = 0; i < state.Rows.Count; i++)
             {
                 MissionRow row = state.Rows[i];
-                if (row.Mission == null) continue;
+                if (row.Mission == null || i >= nodes.Count) continue;
+                MapNode node = nodes[i];
 
-                bool unlocked = CampaignManager.IsUnlocked(save, database, row.Mission);
+                bool unlocked = !node.Locked;
                 UiFactory.SetInteractable(row.Button, unlocked);
                 if (row.TitleLabel != null) row.TitleLabel.text = row.Mission.title;
                 if (row.StarsLabel != null) row.StarsLabel.text = unlocked ? CampaignManager.StarLabel(save, row.Mission) : "Locked";
-                if (row.LockIcon != null) row.LockIcon.enabled = !unlocked && row.LockIcon.sprite != null;
+                if (row.LockIcon != null) row.LockIcon.enabled = node.Locked && row.LockIcon.sprite != null;
+
+                if (i < _visuals.Count)
+                {
+                    NodeVisual visual = _visuals[i];
+                    if (visual.Plate != null)
+                        visual.Plate.color = node.Locked ? LockedTint : node.Completed ? CompletedTint : UnlockedTint;
+                    if (visual.Emblem != null)
+                        visual.Emblem.enabled = visual.Emblem.sprite != null && !node.Locked;
+
+                    // Star icons repaint against the node's own record — one icon per earned star.
+                    for (int s = 0; s < visual.Stars.Length; s++)
+                    {
+                        if (visual.Stars[s] != null)
+                            visual.Stars[s].enabled = visual.Stars[s].sprite != null && s < node.Stars;
+                    }
+                }
             }
+
+            // Territory headers repaint against the recomputed progress in the same pass.
+            RepaintHeaders(save, nodes);
         }
 
-        /// <summary>Select a row by index. A locked row can still be selected so its briefing can be read.</summary>
+        /// <summary>Select a plate by index. A locked plate can still be selected so its briefing can be read.</summary>
         public void SelectRow(int index)
         {
             if (state.Rows == null || index < 0 || index >= state.Rows.Count) return;
@@ -116,74 +175,231 @@ namespace LifeOfEmpires.UI
             if (state.Rows != null && state.Rows.Count > 0) Refresh();
         }
 
-        private void BuildRows()
+        private void BuildMap()
         {
             state.Rows = new List<MissionRow>();
             state.SelectedIndex = -1;
+            _visuals.Clear();
+            _headers.Clear();
 
-            float y = 0f;
-            string currentTerritory = null;
-            for (int i = 0; i < database.missions.Count; i++)
+            SaveData save = SaveSystem.ReadFromDisk();
+            _nodes = CampaignMapLayout.Build(database, save);
+
+            // A map reads better with a little spring at the edges than with a hard stop.
+            if (menu.listRoot != null && menu.listRoot.parent != null)
             {
-                MissionDefinition mission = database.missions[i];
-                if (mission == null) continue;
-
-                string territory = CampaignManager.TerritoryOf(mission);
-                if (!string.Equals(territory, currentTerritory, StringComparison.OrdinalIgnoreCase))
-                {
-                    currentTerritory = territory;
-                    Text header = UiFactory.Label($"Header_{i}", menu.listRoot, $"Campaign — {territory}", 34, TextAnchor.MiddleLeft, UiFactory.AccentColor);
-                    UiFactory.Place(header.rectTransform,
-                        new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
-                        new Vector2(0f, -y), new Vector2(-20f, HeaderHeight));
-                    y += HeaderHeight + RowSpacing;
-                }
-
-                RectTransform rowRoot = menu.NewRow($"MissionRow_{mission.missionId}");
-                UiFactory.Place(rowRoot,
-                    new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
-                    new Vector2(0f, -y), new Vector2(-20f, RowHeight));
-
-                int index = state.Rows.Count;
-                Button button = UiFactory.Button($"Mission_{mission.missionId}", rowRoot, mission.title, 30, () => SelectRow(index), "icon_scroll");
-                UiFactory.Place(button.GetComponent<RectTransform>(),
-                    new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(0.5f, 0.5f),
-                    new Vector2(-120f, 0f), new Vector2(-240f, 0f));
-
-                Image lockIcon = UiFactory.Icon("LockIcon", rowRoot, "icon_lock");
-                UiFactory.Place(lockIcon.rectTransform,
-                    new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f),
-                    new Vector2(-16f, 20f), new Vector2(48f, 48f));
-
-                Image starIcon = UiFactory.Icon("StarIcon", rowRoot, "icon_star");
-                UiFactory.Place(starIcon.rectTransform,
-                    new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f),
-                    new Vector2(-206f, -16f), new Vector2(44f, 44f));
-
-                Text stars = UiFactory.Label("Stars", rowRoot, string.Empty, 28, TextAnchor.MiddleRight, UiFactory.TextColor);
-                UiFactory.Place(stars.rectTransform,
-                    new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f),
-                    new Vector2(-16f, -16f), new Vector2(190f, 60f));
-
-                state.Rows.Add(new MissionRow
-                {
-                    Mission = mission,
-                    Button = button,
-                    TitleLabel = button.GetComponentInChildren<Text>(),
-                    StarsLabel = stars,
-                    LockIcon = lockIcon
-                });
-
-                y += RowHeight + RowSpacing;
+                ScrollRect scroll = menu.listRoot.parent.GetComponent<ScrollRect>();
+                if (scroll != null) scroll.movementType = ScrollRect.MovementType.Elastic;
             }
 
-            menu.SetContentHeight(y + 20f);
+            // The scroll content keeps its "List" name; the map surface inside it is "mapContent",
+            // a top-anchored rect sized to the full layout — scrolling is the viewport's job.
+            _mapContent = UiFactory.Rect("mapContent", menu.listRoot);
+            _mapContent.anchorMin = new Vector2(0f, 1f);
+            _mapContent.anchorMax = new Vector2(1f, 1f);
+            _mapContent.pivot = new Vector2(0.5f, 1f);
+            _mapContent.anchoredPosition = Vector2.zero;
+            _mapContent.sizeDelta = Vector2.zero;
+
+            // Size both rects from the real viewport width before any child lands inside them.
+            ApplyContentHeight();
+            RectTransform mapContent = _mapContent;
+            float mapWidth = _mapWidth;
+
+            // tex_grass imports as a Default texture (the material path needs that), not a sprite —
+            // so the terrain backdrop goes through RawImage rather than the sprite loader.
+            RectTransform backdropRect = UiFactory.Rect("mapBackdrop", mapContent);
+            var backdrop = backdropRect.gameObject.AddComponent<RawImage>();
+            backdrop.texture = Resources.Load<Texture2D>("UI/tex_grass");
+            backdrop.color = new Color(0.9f, 0.95f, 0.85f, backdrop.texture != null ? 0.85f : 0f);
+            backdrop.raycastTarget = false;
+            UiFactory.Stretch(backdropRect);
+
+            Image terrainScrim = UiFactory.Panel("TerrainScrim", mapContent, new Color(0f, 0f, 0f, 0.14f));
+            UiFactory.Stretch(terrainScrim.rectTransform);
+
+            // Territory by territory: header at the band top, the ribbon between the two columns,
+            // then every plate anchored on its serpentine point.
+            int bandStart = 0;
+            while (bandStart < _nodes.Count)
+            {
+                int bandEnd = bandStart;
+                string territory = _nodes[bandStart].Territory;
+                while (bandEnd < _nodes.Count && _nodes[bandEnd].Territory == territory) bandEnd++;
+
+                var bandNodes = _nodes.GetRange(bandStart, bandEnd - bandStart);
+                BuildBand(mapContent, territory, bandNodes, mapWidth, save);
+                bandStart = bandEnd;
+            }
+        }
+
+        /// <summary>
+        /// Measure the viewport's laid-out width and size the scroll content — and the map surface
+        /// inside it — to the layout's full height. Called from BuildMap and every Refresh so a
+        /// repainted map can never carry a stale or fallback-measured height. Before layout runs
+        /// (batch authoring, EditMode) the viewport rect is empty and the reference-width fallback
+        /// stands in.
+        /// </summary>
+        private void ApplyContentHeight()
+        {
+            if (menu == null || menu.listRoot == null) return;
+
+            Canvas.ForceUpdateCanvases();
+            RectTransform viewport = menu.listRoot.parent as RectTransform;
+            _mapWidth = viewport != null && viewport.rect.width > 1f ? viewport.rect.width : FallbackMapWidth;
+
+            float contentHeight = Mathf.Max(400f, CampaignMapLayout.ContentHeight(_nodes) * _mapWidth + NodeTail);
+            menu.SetContentHeight(contentHeight);
+            if (_mapContent != null) _mapContent.sizeDelta = new Vector2(0f, contentHeight);
+        }
+
+        private void BuildBand(RectTransform mapContent, string territory, List<MapNode> bandNodes, float mapWidth, SaveData save)
+        {
+            CampaignMapLayout.ExtentOf(bandNodes, out float minY, out float maxY);
+            float bandTop = Mathf.Max(0.02f, minY - CampaignMapLayout.HeaderGap * 0.85f);
+
+            // Territory header: name plus its conquest tally, centred above the band.
+            (int stars, int configured, bool conquered) = CampaignManager.TerritoryProgress(database, save, territory);
+            string headerText = conquered
+                ? $"{territory}  {stars}/{configured}  —  CONQUERED"
+                : $"{territory}  {stars}/{configured}";
+            Text header = UiFactory.Label($"Territory_{territory}", mapContent, headerText, 32, TextAnchor.MiddleCenter, UiFactory.AccentColor);
+            header.raycastTarget = false;
+            header.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+            UiFactory.Place(header.rectTransform,
+                new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -bandTop * mapWidth), new Vector2(0f, 56f));
+            _headers.Add(header);
+
+            // The ribbon: a wooden route line running between the band's first and last plates,
+            // with a stub reaching out to each plate so the map reads as a path, not a list.
+            if (bandNodes.Count > 0)
+            {
+                Image ribbon = UiFactory.Panel($"Ribbon_{territory}", mapContent, RibbonTint);
+                float ribbonTop = (minY - CampaignMapLayout.HeaderGap * 0.45f) * mapWidth;
+                float ribbonBottom = maxY * mapWidth + PlateCentre;
+                UiFactory.Place(ribbon.rectTransform,
+                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                    new Vector2(0f, -ribbonTop), new Vector2(14f, ribbonBottom - ribbonTop));
+            }
+
+            foreach (MapNode node in bandNodes)
+            {
+                Vector2 point = CampaignMapLayout.PositionOf(node, mapWidth);
+
+                // The horizontal stub from the route to the plate — its direction follows the column.
+                if (Mathf.Abs(node.Anchor.x - 0.5f) > 0.01f)
+                {
+                    Image stub = UiFactory.Panel($"Stub_{node.Mission.missionId}", mapContent, RibbonTint);
+                    float left = Mathf.Min(node.Anchor.x, 0.5f);
+                    float right = Mathf.Max(node.Anchor.x, 0.5f);
+                    stub.rectTransform.anchorMin = new Vector2(left, 1f);
+                    stub.rectTransform.anchorMax = new Vector2(right, 1f);
+                    stub.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                    stub.rectTransform.anchoredPosition = new Vector2(0f, point.y - PlateCentre);
+                    stub.rectTransform.sizeDelta = new Vector2(0f, 10f);
+                }
+
+                BuildNode(mapContent, node, point);
+            }
+        }
+
+        private void BuildNode(RectTransform mapContent, MapNode node, Vector2 point)
+        {
+            // The node GameObject carries the real Button — row lookups and interactable counts
+            // bind to it directly. Its top edge sits on the anchor point and hangs below it.
+            var button = UiFactory.Button($"MissionRow_{node.Mission.missionId}", mapContent, string.Empty, 26, null);
+            RectTransform rowRect = button.GetComponent<RectTransform>();
+            UiFactory.Place(rowRect,
+                new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(point.x, point.y), new Vector2(NodeSize, NodeSize + NodeTail));
+            // The plaque face doesn't fit a square plate — the parchment disc is the visual.
+            Image buttonFace = button.targetGraphic as Image;
+            if (buttonFace != null) buttonFace.enabled = false;
+
+            int index = state.Rows.Count;
+            button.onClick.AddListener(() => SelectRow(index));
+
+            var visual = new NodeVisual();
+
+            // All children hang below the node's top edge: plate first, then title, stars, label.
+            Image plate = UiFactory.Icon("Plate", rowRect, "panel_parchment");
+            UiFactory.Place(plate.rectTransform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, -PlateCentre), new Vector2(PlateSize, PlateSize));
+            visual.Plate = plate;
+
+            Image emblem = UiFactory.Icon("Emblem", rowRect, "icon_scroll");
+            UiFactory.Place(emblem.rectTransform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, -PlateCentre), new Vector2(56f, 56f));
+            visual.Emblem = emblem;
+
+            Text title = UiFactory.Label("Title", rowRect, node.Mission.title, 26, TextAnchor.UpperCenter, UiFactory.TextColor);
+            title.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.85f);
+            UiFactory.Place(title.rectTransform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0f),
+                new Vector2(0f, -(PlateCentre + PlateSize * 0.5f + 8f)), new Vector2(NodeSize + 100f, TitleBand));
+
+            for (int s = 0; s < 3; s++)
+            {
+                Image star = UiFactory.Icon($"Star{s}", rowRect, "icon_star");
+                UiFactory.Place(star.rectTransform,
+                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0f),
+                    new Vector2((s - 1) * 42f, -(PlateCentre + PlateSize * 0.5f + 10f + TitleBand)),
+                    new Vector2(40f, 40f));
+                visual.Stars[s] = star;
+            }
+
+            Text stars = UiFactory.Label("Stars", rowRect, string.Empty, 22, TextAnchor.MiddleCenter, UiFactory.AccentColor);
+            stars.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.85f);
+            UiFactory.Place(stars.rectTransform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0f),
+                new Vector2(0f, -(PlateCentre + PlateSize * 0.5f + 52f + TitleBand)),
+                new Vector2(NodeSize + 100f, StarRowHeight));
+
+            Image lockIcon = UiFactory.Icon("Lock", rowRect, "icon_lock");
+            UiFactory.Place(lockIcon.rectTransform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f),
+                new Vector2(0f, -PlateCentre), new Vector2(44f, 44f));
+            lockIcon.color = new Color(1f, 1f, 1f, 0.92f);
+
+            _visuals.Add(visual);
+            state.Rows.Add(new MissionRow
+            {
+                Mission = node.Mission,
+                Button = button,
+                TitleLabel = title,
+                StarsLabel = stars,
+                LockIcon = lockIcon
+            });
+        }
+
+        private void RepaintHeaders(SaveData save, List<MapNode> nodes)
+        {
+            // Headers were authored band by band in node order; the same order repaints them.
+            int bandStart = 0;
+            int headerIndex = 0;
+            while (bandStart < nodes.Count && headerIndex < _headers.Count)
+            {
+                int bandEnd = bandStart;
+                string territory = nodes[bandStart].Territory;
+                while (bandEnd < nodes.Count && nodes[bandEnd].Territory == territory) bandEnd++;
+
+                (int stars, int configured, bool conquered) = CampaignManager.TerritoryProgress(database, save, territory);
+                _headers[headerIndex].text = conquered
+                    ? $"{territory}  {stars}/{configured}  —  CONQUERED"
+                    : $"{territory}  {stars}/{configured}";
+
+                headerIndex++;
+                bandStart = bandEnd;
+            }
         }
 
         private void BuildControls()
         {
-            // Play and the nav row sit on the fixed footer: the mission list scrolls beneath them
-            // and a tap on them can never be buried under a late mission row.
+            // Play and the nav row sit on the fixed footer: the map scrolls beneath them and a tap
+            // on them can never be buried under a late plate.
             playButton = UiFactory.Button("PlayButton", menu.footerRoot, "Play", 36, PlaySelected, "icon_attack");
             UiFactory.Place(playButton.GetComponent<RectTransform>(),
                 new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
